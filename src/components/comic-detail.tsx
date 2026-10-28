@@ -1,0 +1,123 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getComic } from "@/lib/data";
+import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
+import type { Comic, ReadingProgress } from "@/types/comic";
+
+export function ComicDetail({ id }: { id: string }) {
+  const [comic, setComic] = useState<Comic | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState<ReadingProgress | null>(null);
+  const [bookmarked, setBookmarked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading state for async fetch
+    setLoading(true);
+    getComic(id)
+      .then((c) => {
+        if (cancelled) return;
+        setComic(c);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    setProgress(getProgress(id));
+    setBookmarked(isBookmarked(id));
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading) return <p className="text-zinc-500">Loading…</p>;
+  if (!comic) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-zinc-500">Comic not found.</p>
+        <Link href="/" className="text-blue-500 hover:underline mt-2 inline-block">
+          Back to library
+        </Link>
+      </div>
+    );
+  }
+
+  function onToggleBookmark() {
+    setBookmarked(toggleBookmark(id));
+  }
+
+  return (
+    <div className="grid md:grid-cols-[240px_1fr] gap-6">
+      <div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={comic.cover}
+          alt={comic.title}
+          className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800"
+        />
+        <button
+          type="button"
+          onClick={onToggleBookmark}
+          className="mt-3 w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          {bookmarked ? "★ Bookmarked" : "☆ Bookmark"}
+        </button>
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold">{comic.title}</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          by {comic.author} · {comic.status}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {comic.genres.map((g) => (
+            <span
+              key={g}
+              className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800"
+            >
+              {g}
+            </span>
+          ))}
+        </div>
+        <p className="mt-4 text-sm leading-relaxed">{comic.description}</p>
+
+        {progress && (
+          <div className="mt-4 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-3 text-sm">
+            <p>
+              Continue reading:{" "}
+              <Link
+                href={`/read/${comic.id}/${progress.chapterId}?page=${progress.page}`}
+                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Chapter {comic.chapters.find((c) => c.id === progress.chapterId)?.number ?? "?"} · page{" "}
+                {progress.page + 1}
+              </Link>
+            </p>
+          </div>
+        )}
+
+        <h2 className="mt-6 text-lg font-semibold">Chapters</h2>
+        {comic.chapters.length === 0 && (
+          <p className="text-sm text-zinc-500 mt-2">No chapters available.</p>
+        )}
+        <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+          {comic.chapters.map((ch) => (
+            <li key={ch.id}>
+              <Link
+                href={`/read/${comic.id}/${ch.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              >
+                <span className="text-sm font-medium">
+                  Chapter {ch.number}: {ch.title}
+                </span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {ch.pages.length > 0 ? `${ch.pages.length} pages` : "open to load"}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
