@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ComicCard } from "@/components/comic-card";
 import { listComics, ALL_GENRES } from "@/lib/data";
+import { getAllProgress } from "@/lib/storage/progress";
 import type { Comic } from "@/types/comic";
+import type { ReadingProgress } from "@/types/comic";
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
@@ -13,6 +15,7 @@ export default function HomePage() {
   const [comics, setComics] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progressMap] = useState<Record<string, ReadingProgress>>(() => getAllProgress());
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +29,7 @@ export default function HomePage() {
       })
       .catch((e) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load");
+        setError(e instanceof Error ? e.message : "Failed to load comics");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -49,27 +52,61 @@ export default function HomePage() {
     });
   }, [comics, genre, status]);
 
+  const continueReading = useMemo(() => {
+    return Object.values(progressMap)
+      .map((p) => {
+        const comic = comics.find((c) => c.id === p.comicId);
+        if (!comic) return null;
+        const chapter = comic.chapters.find((c) => c.id === p.chapterId);
+        if (!chapter) return null;
+        return { comic, chapter, page: p.page, progress: p };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => b.progress.updatedAt - a.progress.updatedAt)
+      .slice(0, 6);
+  }, [comics, progressMap]);
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Library</h1>
+        <h1 className="text-2xl font-bold">Library</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Browse and read comics for free.
+          Browse and read free comics.
         </p>
       </div>
 
+      {continueReading.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Continue reading</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {continueReading.map(({ comic, chapter, page }) => (
+              <a
+                key={comic.id}
+                href={`/read/${comic.id}/${chapter.id}?page=${page}`}
+                className="block rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 hover:border-zinc-400 dark:hover:border-zinc-600"
+              >
+                <div className="font-medium text-sm line-clamp-1">{comic.title}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Ch.{chapter.number} · Page {page + 1}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="mb-6 flex flex-col sm:flex-row gap-3">
         <input
-          type="search"
-          placeholder="Search title, author, description…"
+          type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
+          placeholder="Search comics…"
+          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         />
         <select
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All genres</option>
           {ALL_GENRES.map((g) => (
@@ -81,7 +118,7 @@ export default function HomePage() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All status</option>
           <option value="ongoing">Ongoing</option>

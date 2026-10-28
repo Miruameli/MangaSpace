@@ -18,11 +18,20 @@ create table if not exists public.bookmarks (
 alter table public.reading_progress enable row level security;
 alter table public.bookmarks enable row level security;
 
--- Anonymous (anon key) read/write scoped by user_id stored client-side.
--- For production, replace with auth.uid() policies.
-create policy "progress_select" on public.reading_progress for select using (true);
-create policy "progress_upsert" on public.reading_progress for insert with check (true);
-create policy "progress_update" on public.reading_progress for update using (true);
-create policy "bookmarks_select" on public.bookmarks for select using (true);
-create policy "bookmarks_insert" on public.bookmarks for insert with check (true);
-create policy "bookmarks_delete" on public.bookmarks for delete using (true);
+-- Authenticated users only; user_id must equal auth.uid().
+-- Anonymous users stay localStorage-only (no remote sync).
+create policy "progress_select" on public.reading_progress
+  for select using (auth.uid()::text = user_id);
+create policy "progress_insert" on public.reading_progress
+  for insert with check (auth.uid()::text = user_id);
+create policy "progress_update" on public.reading_progress
+  for update using (auth.uid()::text = user_id) with check (auth.uid()::text = user_id);
+create policy "progress_delete" on public.reading_progress
+  for delete using (auth.uid()::text = user_id);
+
+create policy "bookmarks_select" on public.bookmarks
+  for select using (auth.uid()::text = user_id);
+create policy "bookmarks_insert" on public.bookmarks
+  for insert with check (auth.uid()::text = user_id);
+create policy "bookmarks_delete" on public.bookmarks
+  for delete using (auth.uid()::text = user_id);
