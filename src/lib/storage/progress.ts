@@ -57,27 +57,20 @@ export function toggleBookmark(comicId: string): boolean {
   return true;
 }
 
-// --- optional Supabase sync (best-effort, non-blocking) ---
-
-function deviceId(): string {
-  if (typeof window === "undefined") return "ssr";
-  const key = "mangaspace:device-id";
-  let id = window.localStorage.getItem(key);
-  if (!id) {
-    id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2);
-    window.localStorage.setItem(key, id);
-  }
-  return id;
+async function currentUserId(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
 }
 
 export async function syncProgressRemote(p: ReadingProgress): Promise<void> {
+  const uid = await currentUserId();
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb || !uid) return;
   try {
     await sb.from("reading_progress").upsert(
-      { user_id: deviceId(), comic_id: p.comicId, chapter_id: p.chapterId, page: p.page, updated_at: new Date(p.updatedAt).toISOString() },
+      { user_id: uid, comic_id: p.comicId, chapter_id: p.chapterId, page: p.page, updated_at: new Date(p.updatedAt).toISOString() },
       { onConflict: "user_id,comic_id" },
     );
   } catch {
@@ -86,13 +79,14 @@ export async function syncProgressRemote(p: ReadingProgress): Promise<void> {
 }
 
 export async function syncBookmarkRemote(comicId: string, add: boolean): Promise<void> {
+  const uid = await currentUserId();
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb || !uid) return;
   try {
     if (add) {
-      await sb.from("bookmarks").upsert({ user_id: deviceId(), comic_id: comicId });
+      await sb.from("bookmarks").upsert({ user_id: uid, comic_id: comicId });
     } else {
-      await sb.from("bookmarks").delete().eq("user_id", deviceId()).eq("comic_id", comicId);
+      await sb.from("bookmarks").delete().eq("user_id", uid).eq("comic_id", comicId);
     }
   } catch {
     // best-effort
@@ -100,10 +94,10 @@ export async function syncBookmarkRemote(comicId: string, add: boolean): Promise
 }
 
 export async function hydrateFromRemote(): Promise<void> {
+  const uid = await currentUserId();
   const sb = getSupabase();
-  if (!sb || typeof window === "undefined") return;
+  if (!sb || !uid || typeof window === "undefined") return;
   try {
-    const uid = deviceId();
     const { data: prog } = await sb.from("reading_progress").select("*").eq("user_id", uid);
     if (prog) {
       const all = getAllProgress();
@@ -114,15 +108,14 @@ export async function hydrateFromRemote(): Promise<void> {
           all[row.comic_id] = { comicId: row.comic_id, chapterId: row.chapter_id, page: row.page, updatedAt: ts };
         }
       }
-      window.localStorage.setItem("mangaspace:progress", JSON.stringify(all));
+      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
     }
     const { data: bms } = await sb.from("bookmarks").select("comic_id").eq("user_id", uid);
     if (bms) {
       const ids = bms.map((r: { comic_id: string }) => r.comic_id);
-      // merge with local
       const local = getAllBookmarks();
       const merged = Array.from(new Set([...ids, ...local]));
-      window.localStorage.setItem("mangaspace:bookmarks", JSON.stringify(merged));
+      window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(merged));
     }
   } catch {
     // best-effort
