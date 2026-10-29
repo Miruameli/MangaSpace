@@ -15,9 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `public.profiles` table (auto-created on signup) with owner-only RLS.
 - Server-side account-deletion route (`/account/delete`) using the service-role key.
 - Header link to the account page when signed in.
+- Content-Security-Policy `report-uri` reporting to a new `/api/csp-report`
+  endpoint (logged to Vercel stdout), making site CSP violations observable
+  in production before tightening script-src (#32). Extends the CSP
+  hardening shipped in #64.
 
 ### Changed
 - Login page offers multiple sign-in methods instead of email/password only.
+- Hardened the Content-Security-Policy with strictly-additive directives
+  (object-src 'none', base-uri 'self', form-action 'self',
+  upgrade-insecure-requests) in PR #64.
 
 ### Fixed
 - Comic content is reachable again. MangaDex blocks browser-origin requests
