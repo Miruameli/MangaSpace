@@ -182,16 +182,14 @@ describe("getChapterPages", () => {
 });
 
 describe("safeExternalUrl", () => {
-  it("accepts http and https links", () => {
+  it("accepts https links", () => {
     expect(safeExternalUrl("https://reader.example.com/ch/1")).toBe(
       "https://reader.example.com/ch/1",
     );
-    expect(safeExternalUrl("http://reader.example.com/ch/1")).toBe(
-      "http://reader.example.com/ch/1",
-    );
   });
 
-  it("rejects script schemes and malformed values", () => {
+  it("rejects plaintext http, script schemes, and malformed values", () => {
+    expect(safeExternalUrl("http://reader.example.com/ch/1")).toBeUndefined();
     expect(safeExternalUrl("javascript:alert(1)")).toBeUndefined();
     expect(safeExternalUrl("data:text/html,<script>")).toBeUndefined();
     expect(safeExternalUrl("not a url")).toBeUndefined();
