@@ -26,7 +26,15 @@ export interface MdManga {
 
 export interface MdChapter {
   id: string;
-  attributes?: { chapter?: string; title?: string; publishAt?: string; translatedLanguage?: string };
+  attributes?: {
+    chapter?: string;
+    title?: string;
+    publishAt?: string;
+    translatedLanguage?: string;
+    // null when the chapter is hosted on MangaDex; a URL when it lives on an
+    // external source.
+    externalUrl?: string | null;
+  };
 }
 
 export function pickText(obj: Record<string, string> | undefined): string {
@@ -63,5 +71,18 @@ export async function safeJson(res: Response): Promise<unknown> {
     return await res.json();
   } catch {
     return null;
+  }
+}
+
+// Only http(s) links are ever rendered. A chapter source must never be able
+// to inject a javascript: URL into the reader.
+export function safeExternalUrl(url: unknown): string | undefined {
+  if (typeof url !== "string" || !url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
   }
 }

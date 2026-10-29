@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getComic } from "@/lib/data";
+import { getComicsByIds } from "@/app/actions/comics";
 import { getAllBookmarks, getAllProgress } from "@/lib/storage/progress";
 import type { Comic } from "@/types/comic";
 
@@ -10,6 +10,7 @@ export default function BookmarksPage() {
   const [comics, setComics] = useState<Comic[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, { chapterId: string; page: number }>>({});
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -20,10 +21,13 @@ export default function BookmarksPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
     setProgressMap(m);
 
-    Promise.all(ids.map((id) => getComic(id)))
+    getComicsByIds(ids)
       .then((results) => {
         if (cancelled) return;
-        setComics(results.filter((c): c is Comic => Boolean(c)));
+        setComics(results);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -34,6 +38,17 @@ export default function BookmarksPage() {
   }, []);
 
   if (loading) return <p className="text-zinc-500">Loading…</p>;
+
+  if (failed) {
+    return (
+      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+        Could not load your bookmarks.{" "}
+        <Link href="/" className="text-blue-500 hover:underline">
+          Back to library
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div>

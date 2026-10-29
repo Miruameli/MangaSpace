@@ -1,15 +1,16 @@
-import { Suspense } from "react";
 import { ComicDetail } from "@/components/comic-detail";
+import { getComic } from "@/lib/data";
 
+// Server Component: resolve the comic on the server. MangaDex rejects
+// browser-origin requests (CORS preflight 403, no allow-origin header), so a
+// client-side fetch silently falls back to mock data and renders zero
+// chapters. Server-side the API is reachable and the ISR cache applies.
 export default async function ComicDetailRoute({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return (
-    <Suspense fallback={<p className="text-zinc-500">Loading…</p>}>
-      <ComicDetail id={id} />
-    </Suspense>
-  );
+  const comic = await getComic(id);
+  return <ComicDetail id={id} comic={comic} />;
 }

@@ -18,3 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Login page offers multiple sign-in methods instead of email/password only.
+
+### Fixed
+- Comic content is reachable again. MangaDex blocks browser-origin requests
+  (the CORS preflight returns 403 and the response carries no
+  `access-control-allow-origin` header), so the comic detail page, the reader
+  and the bookmarks grid now resolve their data on the server instead of in a
+  client `useEffect`. Previously each of them silently fell back to mock data
+  and rendered "Comic not found." / "Chapter not found." / an empty grid with
+  no error shown to the user.
+- `/bookmarks` now reports a load failure instead of claiming there are no
+  bookmarks when the lookup fails.
+- Chapters that MangaDex does not host itself (the source lives on another
+  site) now link to the original source instead of showing an empty reader.
+
+- When a chapter number exists both on MangaDex and on an external source, the
+  MangaDex-hosted one is listed so it can actually be read in-app, instead of
+  the external variant being shown and then failing to load.

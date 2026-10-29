@@ -19,6 +19,12 @@ export type Chapter = {
   title: string;
   pages: string[];
   publishedAt: string;
+  // Chapters hosted outside MangaDex have no page images; this points at the
+  // original source so the reader can still reach the content.
+  externalUrl?: string;
+  // Set when the upstream request failed (rate limit, network, 5xx), so the
+  // reader can report a transport problem instead of blaming the content.
+  loadFailed?: boolean;
 };
 
 export type ReadingProgress = {
