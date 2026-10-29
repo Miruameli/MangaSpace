@@ -10,8 +10,19 @@ const DEBOUNCE_MS = 300;
 // Owns the library's search lifecycle: a debounced query, the server-action
 // search it triggers, and the derived "current" comic list. The initial set
 // arrives from the server and is shown whenever there is no active query.
-export function useLibrarySearch(initialComics: Comic[]) {
-  const [query, setQuery] = useState("");
+export function useLibrarySearch(
+  initialComics: Comic[],
+  initialQueryOrOptions: string | { initialQuery?: string; initialSearch?: string; query?: string; search?: string } = "",
+) {
+  const initialQuery =
+    typeof initialQueryOrOptions === "string"
+      ? initialQueryOrOptions
+      : initialQueryOrOptions.initialQuery ??
+        initialQueryOrOptions.initialSearch ??
+        initialQueryOrOptions.query ??
+        initialQueryOrOptions.search ??
+        "";
+  const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(false);

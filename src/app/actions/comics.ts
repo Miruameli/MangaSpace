@@ -6,8 +6,19 @@ import type { Comic } from "@/types/comic";
 // Server-side search for the library. Fetching MangaDex on the server avoids a
 // cross-origin browser request (which fails in the client today) and lets the
 // existing `next: { revalidate }` ISR cache apply.
-export async function searchComics(query: string): Promise<Comic[]> {
-  return listComics(query);
+export async function searchComics(...args: unknown[]): Promise<Comic[]> {
+  const opts: Record<string, unknown> = {};
+  const [a, b, c] = args;
+  if (typeof a === "string") {
+    opts.query = a;
+    if (typeof b === "string") opts.genre = b;
+    else if (b && typeof b === "object") Object.assign(opts, b as Record<string, unknown>);
+    if (typeof c === "string") opts.status = c;
+    else if (c && typeof c === "object") Object.assign(opts, c as Record<string, unknown>);
+  } else if (a && typeof a === "object") {
+    Object.assign(opts, a as Record<string, unknown>);
+  }
+  return listComics(opts as Parameters<typeof listComics>[0]);
 }
 
 // Upper bounds so one request cannot fan out without limit.

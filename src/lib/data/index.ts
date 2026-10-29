@@ -9,17 +9,68 @@ export function getDataSource(): DataSource {
   return v === "mock" ? "mock" : "mangadex";
 }
 
-export async function listComics(query = ""): Promise<Comic[]> {
+type ListComicsOptions = {
+  query?: string;
+  search?: string;
+  q?: string;
+  genre?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+function normalizeListComicsArgs(args: unknown[]): ListComicsOptions {
+  const opts: ListComicsOptions = {};
+  const [a, b, c] = args;
+  if (typeof a === "string") {
+    opts.query = a;
+    if (typeof b === "string") opts.genre = b;
+    else if (b && typeof b === "object") Object.assign(opts, b);
+    if (typeof c === "string") opts.status = c;
+    else if (c && typeof c === "object") Object.assign(opts, c);
+  } else if (a && typeof a === "object") {
+    Object.assign(opts, a as ListComicsOptions);
+  }
+  if (args.length > 1 && typeof args[1] === "object") Object.assign(opts, args[1] as ListComicsOptions);
+  if (args.length > 2 && typeof args[2] === "object") Object.assign(opts, args[2] as ListComicsOptions);
+  if (opts.genre === "all") opts.genre = undefined;
+  if (opts.status === "all") opts.status = undefined;
+  if (opts.status) {
+    const s = String(opts.status).trim().toLowerCase();
+    opts.status = new Set(["ongoing", "completed", "hiatus", "cancelled"]).has(s) ? s : undefined;
+  }
+  return opts;
+}
+
+function normalizeFilter(v?: string): string {
+  if (!v || v === "all") return "";
+  return v.trim();
+}
+
+export async function listComics(...args: unknown[]): Promise<Comic[]> {
+  const opts = normalizeListComicsArgs(args);
+  const query = (opts.query ?? opts.search ?? opts.q ?? "").trim();
+  const genre = normalizeFilter(opts.genre);
+  const status = normalizeFilter(opts.status);
   if (getDataSource() === "mock") {
-    const q = query.trim().toLowerCase();
-    return mock.getAllComics().filter((c) =>
-      q ? `${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q) : true,
-    );
+    const q = query.toLowerCase();
+    return mock.getAllComics().filter((c) => {
+      if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
+      if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
+      if (status && c.status !== status.toLowerCase()) return false;
+      return true;
+    });
   }
   try {
-    return await md.listManga(24, 0, query);
+    return await md.listManga(opts.limit ?? 24, opts.offset ?? 0, query, { genre, status });
   } catch {
-    return mock.getAllComics();
+    const q = query.toLowerCase();
+    return mock.getAllComics().filter((c) => {
+      if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
+      if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
+      if (status && c.status !== status.toLowerCase()) return false;
+      return true;
+    });
   }
 }
 
