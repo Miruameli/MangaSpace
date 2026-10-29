@@ -18,7 +18,10 @@ export function Header() {
           {configured && (
             user ? (
               <>
-                <span className="text-zinc-500 dark:text-zinc-400 truncate max-w-[12rem]">
+                <Link href="/account" className="hover:underline">
+                  Account
+                </Link>
+                <span className="text-zinc-500 dark:text-zinc-400 truncate max-w-[10rem]">
                   {user.email}
                 </span>
                 <button
