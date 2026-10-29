@@ -7,7 +7,7 @@ import { SecuritySection } from "@/components/account/security-section";
 import { LinkedMethods } from "@/components/account/linked-methods";
 
 export default function AccountPage() {
-  const { configured, user, loading } = useAuth();
+  const { configured, user, loading, profile } = useAuth();
   const router = useRouter();
 
   if (!configured) {
@@ -30,7 +30,7 @@ export default function AccountPage() {
           Manage your profile and sign-in methods.
         </p>
       </div>
-      <ProfileSection />
+      <ProfileSection key={profile?.id} />
       <SecuritySection />
       <LinkedMethods />
     </div>
