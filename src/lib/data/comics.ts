@@ -13,7 +13,7 @@ function makeChapter(
     id,
     comicId,
     number,
-    title: `Chapter ${number}`,
+    title: "",
     pages: Array.from({ length: pageCount }, (_, i) =>
       page(`${comicId}-ch${number}-p${i + 1}`),
     ),

@@ -8,6 +8,20 @@ import type { Comic, ReadingProgress } from "@/types/comic";
 
 // The comic is resolved on the server (see app/comic/[id]/page.tsx); this
 // client component only owns the interactive bookmark and progress state.
+export function chapterLabel(number: number, title: string): string {
+  const t = String(title ?? "").trim();
+  // Strip a trailing colon (and any trailing spaces) only for redundancy
+  // detection, so "Chapter 2:" is treated like "Chapter 2".
+  const core = t.replace(/:+\s*$/, "").trim().replace(/\s+/g, " ");
+  if (!core) return `Chapter ${number}`;
+  if (
+    core === String(number) ||
+    core.toLowerCase() === `chapter ${number}`.toLowerCase()
+  ) {
+    return `Chapter ${number}`;
+  }
+  return `Chapter ${number}: ${t}`;
+}
 export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefined }) {
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
@@ -97,7 +111,7 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
                 className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
               >
                 <span className="text-sm font-medium">
-                  Chapter {ch.number}: {ch.title}
+                  {chapterLabel(ch.number, ch.title)}
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {ch.pages.length > 0 ? `${ch.pages.length} pages` : "open to load"}
