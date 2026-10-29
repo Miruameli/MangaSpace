@@ -2,36 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getComic } from "@/lib/data";
 import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
 
-export function ComicDetail({ id }: { id: string }) {
-  const [comic, setComic] = useState<Comic | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+// The comic is resolved on the server (see app/comic/[id]/page.tsx); this
+// client component only owns the interactive bookmark and progress state.
+export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefined }) {
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading state for async fetch
-    setLoading(true);
-    getComic(id)
-      .then((c) => {
-        if (cancelled) return;
-        setComic(c);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
     setProgress(getProgress(id));
     setBookmarked(isBookmarked(id));
-    return () => {
-      cancelled = true;
-    };
   }, [id]);
 
-  if (loading) return <p className="text-zinc-500">Loading…</p>;
   if (!comic) {
     return (
       <div className="text-center py-20">

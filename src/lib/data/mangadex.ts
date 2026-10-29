@@ -10,6 +10,7 @@ import {
   tagNames,
   authorName,
   safeJson,
+  safeExternalUrl,
 } from "./mangadex-helpers";
 
 export { API, validUuid } from "./mangadex-helpers";
@@ -84,7 +85,7 @@ export async function getMangaChapters(mangaId: string): Promise<Chapter[]> {
   for (const c of data) {
     const num = Number(c.attributes?.chapter) || 0;
     const prev = byNumber.get(num);
-    if (!prev || c.attributes?.translatedLanguage === "id") {
+    if (!prev || prefersChapter(c, prev)) {
       byNumber.set(num, c);
     }
   }
@@ -94,8 +95,21 @@ export async function getMangaChapters(mangaId: string): Promise<Chapter[]> {
     number: Number(c.attributes?.chapter) || 0,
     title: c.attributes?.title ?? `Chapter ${c.attributes?.chapter ?? ""}`,
     pages: [],
-    publishedAt: c.attributes?.publishAt ? new Date(c.attributes.publishAt).toISOString() : new Date().toISOString(),
+    publishedAt: c.attributes?.publishAt
+      ? new Date(c.attributes.publishAt).toISOString()
+      : new Date().toISOString(),
+    externalUrl: safeExternalUrl(c.attributes?.externalUrl),
   }));
+}
+
+// A chapter is preferred over another when it is hosted on MangaDex (readable
+// in-app) and the other lives on an external source, or — when that is equal —
+// it is the Indonesian translation.
+function prefersChapter(a: MdChapter, b: MdChapter): boolean {
+  const aHosted = a.attributes?.externalUrl == null;
+  const bHosted = b.attributes?.externalUrl == null;
+  if (aHosted !== bHosted) return aHosted;
+  return a.attributes?.translatedLanguage === "id";
 }
 
 export async function getChapterPages(chapterId: string): Promise<string[]> {
@@ -116,6 +130,10 @@ export async function getChapterPages(chapterId: string): Promise<string[]> {
 
 export async function hydrateChapter(chapter: Chapter): Promise<Chapter> {
   if (chapter.pages.length > 0) return chapter;
+  // The feed already tells us whether the chapter is hosted on MangaDex or on
+  // an external source. External chapters expose no page images here, so point
+  // the reader at the original source instead of an empty gallery.
+  if (chapter.externalUrl) return { ...chapter, pages: [] };
   const pages = await getChapterPages(chapter.id);
   return { ...chapter, pages };
 }

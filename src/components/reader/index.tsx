@@ -3,25 +3,27 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getChapter, getComic } from "@/lib/data";
 import { saveProgress } from "@/lib/storage/progress";
 import type { Chapter, Comic } from "@/types/comic";
 import { ReaderView } from "./view";
+import { ChapterUnavailable } from "./unavailable";
 import { getNextTarget } from "./navigation";
 
+// The comic and its chapter are resolved on the server (see
+// app/read/[comicId]/[chapterId]/page.tsx); this client component owns the
+// page navigation and the reading-progress state.
 export function Reader({
-  comicId,
   chapterId,
   initialPage,
+  comic,
+  chapter,
 }: {
-  comicId: string;
   chapterId: string;
   initialPage: number;
+  comic: Comic | undefined;
+  chapter: Chapter | undefined;
 }) {
   const router = useRouter();
-  const [comic, setComic] = useState<Comic | undefined>(undefined);
-  const [chapter, setChapter] = useState<Chapter | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
 
   const [pageIndex, setPageIndex] = useState(
     Number.isFinite(initialPage) && initialPage >= 0 ? initialPage : 0,
@@ -35,24 +37,6 @@ export function Reader({
     if (typeof window === "undefined") return;
     window.localStorage.setItem("mangaspace:fitWidth", String(fitWidth));
   }, [fitWidth]);
-
-  useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading state for async fetch
-    setLoading(true);
-    Promise.all([getComic(comicId), getChapter(comicId, chapterId)])
-      .then(([c, ch]) => {
-        if (cancelled) return;
-        setComic(c);
-        setChapter(ch);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [comicId, chapterId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page index when chapter/route changes
@@ -96,7 +80,6 @@ export function Reader({
     return () => window.removeEventListener("keydown", onKey);
   }, [goPrev, goNext]);
 
-  if (loading) return <p className="text-zinc-500">Loading…</p>;
   if (!comic || !chapter) {
     return (
       <div className="text-center py-20">
@@ -115,14 +98,7 @@ export function Reader({
     chapterIndex < comic.chapters.length - 1 ? comic.chapters[chapterIndex + 1] : null;
 
   if (totalPages === 0) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-zinc-500">No pages available for this chapter.</p>
-        <Link href={`/comic/${comic.id}`} className="text-blue-500 hover:underline mt-2 inline-block">
-          Back to comic
-        </Link>
-      </div>
-    );
+    return <ChapterUnavailable comicId={comic.id} externalUrl={chapter.externalUrl} />;
   }
 
   return (
