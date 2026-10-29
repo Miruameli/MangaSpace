@@ -15,7 +15,89 @@ import {
 
 export { API, validUuid } from "./mangadex-helpers";
 
-export async function listManga(limit = 24, offset = 0, query = ""): Promise<Comic[]> {
+type ListMangaOptions = {
+  limit?: number;
+  offset?: number;
+  query?: string;
+  search?: string;
+  q?: string;
+  genre?: string;
+  status?: string;
+};
+
+function normalizeListMangaArgs(args: unknown[]): {
+  limit: number;
+  offset: number;
+  query: string;
+  genre: string;
+  status: string;
+} {
+  let limit = 24;
+  let offset = 0;
+  let query = "";
+  let genre = "";
+  let status = "";
+  const [a, b, c, d, e] = args;
+  if (a && typeof a === "object") {
+    const o = a as ListMangaOptions;
+    limit = o.limit ?? 24;
+    offset = o.offset ?? 0;
+    query = o.query ?? o.search ?? o.q ?? "";
+    genre = o.genre ?? "";
+    status = o.status ?? "";
+  } else {
+    limit = typeof a === "number" ? a : 24;
+    offset = typeof b === "number" ? b : 0;
+    if (typeof c === "string") query = c;
+    else if (c && typeof c === "object") {
+      const o = c as ListMangaOptions;
+      query = o.query ?? o.search ?? o.q ?? query;
+      genre = o.genre ?? genre;
+      status = o.status ?? status;
+    }
+    if (typeof d === "string") genre = d;
+    else if (d && typeof d === "object") {
+      const o = d as ListMangaOptions;
+      genre = o.genre ?? genre;
+      status = o.status ?? status;
+      if (o.query || o.search || o.q) query = o.query ?? o.search ?? o.q ?? query;
+    }
+    if (typeof e === "string") status = e;
+  }
+  if (genre === "all") genre = "";
+  if (status === "all") status = "";
+  const normalizedStatus = status.trim().toLowerCase();
+  const allowedStatus = new Set(["ongoing", "completed", "hiatus", "cancelled"]);
+  return {
+    limit,
+    offset,
+    query: query.trim(),
+    genre: genre.trim(),
+    status: allowedStatus.has(normalizedStatus) ? normalizedStatus : "",
+  };
+}
+
+let tagCache: Map<string, string> | null = null;
+async function resolveTagId(name: string): Promise<string | undefined> {
+  if (!tagCache) {
+    try {
+      const res = await fetch(`${API}/manga/tag`, { next: { revalidate: 3600 } });
+      if (!res.ok) return undefined;
+      const json = (await safeJson(res)) as { data?: Array<{ id: string; attributes?: { name?: Record<string, string> } }> } | null;
+      tagCache = new Map();
+      for (const t of json?.data ?? []) {
+        const n = pickText(t.attributes?.name);
+        if (n && t.id) tagCache.set(n.toLowerCase(), t.id);
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return tagCache.get(name.toLowerCase());
+}
+
+export async function listManga(...args: unknown[]): Promise<Comic[]> {
+  const { limit, offset, query, genre, status } = normalizeListMangaArgs(args);
   const params = new URLSearchParams();
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -23,7 +105,12 @@ export async function listManga(limit = 24, offset = 0, query = ""): Promise<Com
   params.set("order[followedCount]", "desc");
   params.append("contentRating[]", "safe");
   params.append("contentRating[]", "suggestive");
-  if (query.trim()) params.set("title", query.trim());
+  if (query) params.set("title", query);
+  if (status) params.append("status[]", status);
+  if (genre) {
+    const tagId = await resolveTagId(genre);
+    if (tagId) params.append("includedTags[]", tagId);
+  }
 
   const res = await fetch(`${API}/manga?${params.toString()}`, {
     next: { revalidate: 300 },
