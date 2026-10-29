@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { ComicDetail } from "@/components/comic-detail";
 import { getComic } from "@/lib/data";
 
@@ -12,5 +13,6 @@ export default async function ComicDetailRoute({
 }) {
   const { id } = await params;
   const comic = await getComic(id);
+  if (!comic) notFound();
   return <ComicDetail id={id} comic={comic} />;
 }
