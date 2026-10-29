@@ -74,13 +74,14 @@ export async function safeJson(res: Response): Promise<unknown> {
   }
 }
 
-// Only http(s) links are ever rendered. A chapter source must never be able
-// to inject a javascript: URL into the reader.
+// Only https links are ever rendered. A chapter source must never be able to
+// inject a non-secure URL (javascript:, data:, or plaintext http:) into the
+// reader, and an https app must not navigate users to an insecure origin.
 export function safeExternalUrl(url: unknown): string | undefined {
   if (typeof url !== "string" || !url) return undefined;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return undefined;
+    if (parsed.protocol !== "https:") return undefined;
     return parsed.toString();
   } catch {
     return undefined;
