@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { Reader } from "@/components/reader";
 import { getChapter, getComic } from "@/lib/data";
 
@@ -19,6 +20,7 @@ export default async function ReaderRoute({
     getComic(comicId),
     getChapter(comicId, chapterId),
   ]);
+  if (!comic || !chapter) notFound();
   return (
     <Reader
       chapterId={chapterId}
