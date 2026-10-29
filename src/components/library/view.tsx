@@ -1,56 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { searchComics } from "@/app/actions/comics";
+import { useMemo, useState } from "react";
 import { ALL_GENRES } from "@/lib/data";
-import { getAllProgress } from "@/lib/storage/progress";
 import { ComicCard } from "@/components/comic-card";
+import { useLibrarySearch } from "./use-search";
 import type { Comic } from "@/types/comic";
-import type { ReadingProgress } from "@/types/comic";
 
-// Interactive library UI. Initial comics arrive from the server; search runs
-// through a server action (same-origin), while genre/status filter locally.
+// Interactive library UI. The search state and its async lifecycle live in
+// `useLibrarySearch`; this component renders the results plus genre/status
+// filters on top of the current comic list.
 export function LibraryView({ initialComics }: { initialComics: Comic[] }) {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const { query, setQuery, loading, error, comics, progressMap } =
+    useLibrarySearch(initialComics);
   const [genre, setGenre] = useState("all");
   const [status, setStatus] = useState("all");
-  const [results, setResults] = useState<Comic[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [progressMap] = useState<Record<string, ReadingProgress>>(() =>
-    getAllProgress(),
-  );
-
-  // Show the server-fetched initial set until a search query is active.
-  const comics = debouncedQuery ? results : initialComics;
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 300);
-    return () => clearTimeout(t);
-  }, [query]);
-
-  useEffect(() => {
-    if (!debouncedQuery) return;
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- transient loading for async search
-    setLoading(true);
-    setError(null);
-    searchComics(debouncedQuery)
-      .then((data) => {
-        if (!cancelled) setResults(data);
-      })
-      .catch((e) => {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Failed to load comics");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedQuery]);
 
   const filtered = useMemo(() => {
     return comics.filter((c) => {
