@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
@@ -35,12 +36,15 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
   return (
     <div className="grid md:grid-cols-[240px_1fr] gap-6">
       <div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={comic.cover}
-          alt={comic.title}
-          className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800"
-        />
+        <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <Image
+            src={comic.cover}
+            alt={comic.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 240px"
+            className="object-cover"
+          />
+        </div>
         <button
           type="button"
           onClick={onToggleBookmark}

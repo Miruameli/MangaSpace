@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getComicsByIds } from "@/app/actions/comics";
 import { getAllBookmarks, getAllProgress } from "@/lib/storage/progress";
@@ -67,8 +68,9 @@ export default function BookmarksPage() {
             const ch = prog ? c.chapters.find((x) => x.id === prog.chapterId) : null;
             return (
               <li key={c.id} className="flex items-center gap-4 p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.cover} alt={c.title} className="w-12 h-16 object-cover rounded" />
+                <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded">
+                  <Image src={c.cover} alt={c.title} fill sizes="48px" className="object-cover" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <Link href={`/comic/${c.id}`} className="font-medium text-sm hover:underline">
                     {c.title}
