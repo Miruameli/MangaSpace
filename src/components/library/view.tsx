@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ALL_GENRES } from "@/lib/data";
 import { ComicCard } from "@/components/comic-card";
 import { useLibrarySearch } from "./use-search";
@@ -9,34 +9,11 @@ import type { Comic } from "@/types/comic";
 // Interactive library UI. The search state and its async lifecycle live in
 // `useLibrarySearch`; this component renders the results plus genre/status
 // filters on top of the current comic list.
-type LibraryViewProps = {
-  initialComics: Comic[];
-  initialQuery?: string;
-  initialSearch?: string;
-  initialGenre?: string;
-  initialStatus?: string;
-  query?: string;
-  search?: string;
-  genre?: string;
-  status?: string;
-};
-
-export function LibraryView(props: LibraryViewProps) {
-  const initialComics = props.initialComics;
-  const initialQuery =
-    props.initialQuery ?? props.initialSearch ?? props.query ?? props.search ?? "";
-  const initialGenre = props.initialGenre ?? props.genre ?? "all";
-  const initialStatus = props.initialStatus ?? props.status ?? "all";
-
+export function LibraryView({ initialComics }: { initialComics: Comic[] }) {
   const { query, setQuery, loading, error, comics, progressMap } =
-    useLibrarySearch(initialComics, initialQuery);
-  const [genre, setGenre] = useState(initialGenre);
-  const [status, setStatus] = useState(initialStatus);
-
-  const genres = useMemo(
-    () => Array.from(new Set([...ALL_GENRES, ...initialComics.flatMap((c) => c.genres)])).sort(),
-    [initialComics],
-  );
+    useLibrarySearch(initialComics);
+  const [genre, setGenre] = useState("all");
+  const [status, setStatus] = useState("all");
 
   const filtered = useMemo(() => {
     return comics.filter((c) => {
@@ -45,46 +22,6 @@ export function LibraryView(props: LibraryViewProps) {
       return true;
     });
   }, [comics, genre, status]);
-
-  // Keep the active filters reflected in the URL so views are shareable and
-  // survive reloads. Also react to browser back/forward navigation.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    // Normalize legacy aliases to the canonical `search` param.
-    params.delete("q");
-    params.delete("query");
-    if (query) params.set("search", query);
-    else params.delete("search");
-    if (genre && genre !== "all") params.set("genre", genre);
-    else params.delete("genre");
-    if (status && status !== "all") params.set("status", status);
-    else params.delete("status");
-    const searchStr = params.toString();
-    const newUrl = `${window.location.pathname}${searchStr ? `?${searchStr}` : ""}${window.location.hash}`;
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (newUrl !== currentUrl) {
-      window.history.replaceState(null, "", newUrl);
-    }
-  }, [query, genre, status]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onPopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      const nextSearch =
-        params.get("search") ?? params.get("q") ?? params.get("query") ?? "";
-      const nextGenre = params.get("genre") ?? "all";
-      const nextStatusRaw = (params.get("status") ?? "all").toLowerCase();
-      const nextStatus = nextStatusRaw === "" ? "all" : nextStatusRaw;
-      setQuery(nextSearch);
-      setGenre(nextGenre);
-      setStatus(nextStatus);
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const continueReading = useMemo(() => {
     return Object.values(progressMap)
@@ -143,7 +80,7 @@ export function LibraryView(props: LibraryViewProps) {
           className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All genres</option>
-          {genres.map((g) => (
+          {ALL_GENRES.map((g) => (
             <option key={g} value={g}>
               {g}
             </option>
