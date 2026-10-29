@@ -32,19 +32,25 @@ export async function getComic(id: string): Promise<Comic | undefined> {
   }
 }
 
-export async function getChapter(comicId: string, chapterId: string): Promise<Chapter | undefined> {
-  if (getDataSource() === "mock") {
-    const ch = mock.getChapter(comicId, chapterId);
-    return ch;
-  }
+// Resolve a single chapter from a comic the caller has ALREADY loaded.
+// The reader route performs the heavy manga + chapter-feed fetch once via
+// getComic, so getChapter must NOT re-fetch — it only hydrates page images
+// for the chosen chapter from the at-home server. Re-fetching here would
+// duplicate the feed request (issue #33). External (off-MangaDex) chapters
+// come back with no pages and are surfaced via the reader's unavailable UI.
+export async function getChapter(
+  comic: Comic,
+  chapterId: string,
+): Promise<Chapter | undefined> {
+  const ch = comic.chapters.find((c) => c.id === chapterId);
+  if (!ch) return undefined;
+  if (getDataSource() === "mock") return ch;
   try {
-    // find chapter in manga feed
-    const comic = await md.getManga(comicId);
-    const ch = comic?.chapters.find((c) => c.id === chapterId);
-    if (!ch) return undefined;
     return await md.hydrateChapter(ch);
   } catch {
-    return mock.getChapter(comicId, chapterId);
+    // Page-image fetch failed (network/5xx). Preserve prior semantics: surface
+    // as "not found" rather than crashing the Server Component.
+    return undefined;
   }
 }
 
