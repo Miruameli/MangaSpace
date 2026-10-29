@@ -17,7 +17,7 @@ export default function Error({
     <div className="text-center py-20">
       <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-        {error.message || "Unexpected error."}
+        An unexpected error occurred. Please try again.
       </p>
       <button
         type="button"
