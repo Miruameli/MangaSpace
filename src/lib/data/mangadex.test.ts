@@ -113,6 +113,45 @@ describe("getMangaChapters", () => {
     fetchMock.mockResolvedValue(new Response("nope", { status: 500 }));
     expect(await getMangaChapters(MANGA_ID)).toEqual([]);
   });
+  it("paginates the feed and aggregates chapters past one page (#37)", async () => {
+    // MangaDex caps limit at 500, so a series longer than 500 chapters must be
+    // fetched across pages or the tail is silently dropped.
+    const full = Array.from({ length: 500 }, (_, i) => ({
+      id: `c-${i}`,
+      attributes: { chapter: String(i + 1), translatedLanguage: "en" },
+    }));
+    const tail = Array.from({ length: 37 }, (_, i) => ({
+      id: `c-${500 + i}`,
+      attributes: { chapter: String(501 + i), translatedLanguage: "en" },
+    }));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ data: full }))
+      .mockResolvedValueOnce(jsonResponse({ data: tail }));
+
+    const chapters = await getMangaChapters(MANGA_ID);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain("offset=500");
+    expect(chapters).toHaveLength(537);
+    expect(chapters[0].number).toBe(1);
+    expect(chapters[536].id).toBe("c-536");
+    expect(chapters[536].number).toBe(537);
+  });
+
+  it("keeps chapters from good pages when a later page fails (#37)", async () => {
+    const full = Array.from({ length: 500 }, (_, i) => ({
+      id: `c-${i}`,
+      attributes: { chapter: String(i + 1), translatedLanguage: "en" },
+    }));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ data: full }))
+      .mockResolvedValueOnce(new Response("boom", { status: 500 }));
+
+    const chapters = await getMangaChapters(MANGA_ID);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(chapters).toHaveLength(500);
+  });
 });
 
 describe("getChapterPages", () => {

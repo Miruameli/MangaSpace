@@ -70,17 +70,28 @@ export async function getManga(id: string): Promise<Comic | undefined> {
 
 export async function getMangaChapters(mangaId: string): Promise<Chapter[]> {
   if (!validUuid(mangaId)) return [];
-  const params = new URLSearchParams();
-  params.set("limit", "500");
-  params.append("translatedLanguage[]", "en");
-  params.append("translatedLanguage[]", "id");
-  params.set("order[chapter]", "asc");
-  const res = await fetch(`${API}/manga/${mangaId}/feed?${params.toString()}`, {
-    next: { revalidate: 300 },
-  });
-  if (!res.ok) return [];
-  const json = (await safeJson(res)) as { data?: MdChapter[] } | null;
-  const data = json?.data ?? [];
+  // MangaDex caps `limit` at 500, so a long series' feed must be paginated or
+  // every chapter past the first page is silently dropped. Walk offsets until a
+  // short page proves we've reached the end; keep whatever we gathered if a
+  // later page fails rather than discarding the chapters already fetched.
+  const PAGE = 500;
+  const data: MdChapter[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const params = new URLSearchParams();
+    params.set("limit", String(PAGE));
+    params.set("offset", String(offset));
+    params.append("translatedLanguage[]", "en");
+    params.append("translatedLanguage[]", "id");
+    params.set("order[chapter]", "asc");
+    const res = await fetch(`${API}/manga/${mangaId}/feed?${params.toString()}`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) break;
+    const page = ((await safeJson(res)) as { data?: MdChapter[] } | null)?.data;
+    const items = page ?? [];
+    data.push(...items);
+    if (items.length < PAGE) break;
+  }
   const byNumber = new Map<number, MdChapter>();
   for (const c of data) {
     const num = Number(c.attributes?.chapter) || 0;
