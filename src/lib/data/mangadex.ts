@@ -23,20 +23,22 @@ type ListMangaOptions = {
   q?: string;
   genre?: string;
   status?: string;
+  language?: string;
 };
-
 function normalizeListMangaArgs(args: unknown[]): {
   limit: number;
   offset: number;
   query: string;
   genre: string;
   status: string;
+  language: string;
 } {
   let limit = 24;
   let offset = 0;
   let query = "";
   let genre = "";
   let status = "";
+  let language = "";
   const [a, b, c, d, e] = args;
   if (a && typeof a === "object") {
     const o = a as ListMangaOptions;
@@ -45,6 +47,7 @@ function normalizeListMangaArgs(args: unknown[]): {
     query = o.query ?? o.search ?? o.q ?? "";
     genre = o.genre ?? "";
     status = o.status ?? "";
+    language = o.language ?? "";
   } else {
     limit = typeof a === "number" ? a : 24;
     offset = typeof b === "number" ? b : 0;
@@ -54,26 +57,35 @@ function normalizeListMangaArgs(args: unknown[]): {
       query = o.query ?? o.search ?? o.q ?? query;
       genre = o.genre ?? genre;
       status = o.status ?? status;
+      language = o.language ?? language;
     }
     if (typeof d === "string") genre = d;
     else if (d && typeof d === "object") {
       const o = d as ListMangaOptions;
       genre = o.genre ?? genre;
       status = o.status ?? status;
+      language = o.language ?? language;
       if (o.query || o.search || o.q) query = o.query ?? o.search ?? o.q ?? query;
     }
     if (typeof e === "string") status = e;
   }
   if (genre === "all") genre = "";
   if (status === "all") status = "";
+  if (language === "all") language = "";
   const normalizedStatus = status.trim().toLowerCase();
-  const allowedStatus = new Set(["ongoing", "completed", "hiatus", "cancelled"]);
+  const allowedStatus: Record<string, true> = {
+    ongoing: true,
+    completed: true,
+    hiatus: true,
+    cancelled: true,
+  };
   return {
     limit,
     offset,
     query: query.trim(),
     genre: genre.trim(),
-    status: allowedStatus.has(normalizedStatus) ? normalizedStatus : "",
+    status: allowedStatus[normalizedStatus] ? normalizedStatus : "",
+    language: language.trim(),
   };
 }
 
@@ -97,7 +109,7 @@ async function resolveTagId(name: string): Promise<string | undefined> {
 }
 
 export async function listManga(...args: unknown[]): Promise<Comic[]> {
-  const { limit, offset, query, genre, status } = normalizeListMangaArgs(args);
+  const { limit, offset, query, genre, status, language } = normalizeListMangaArgs(args);
   const params = new URLSearchParams();
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -112,6 +124,7 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
     const tagId = await resolveTagId(genre);
     if (tagId) params.append("includedTags[]", tagId);
   }
+  if (language) params.append("translatedLanguage[]", language);
 
   const res = await fetch(`${API}/manga?${params.toString()}`, {
     next: { revalidate: 300 },
@@ -151,6 +164,7 @@ export async function getManga(id: string): Promise<Comic | undefined> {
     cover: coverUrl(m),
     genres: tagNames(m),
     status: statusFromManga(m.attributes?.status),
+    language: undefined,
     updatedAt: new Date().toISOString(),
     chapters,
   };
