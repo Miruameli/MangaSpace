@@ -19,7 +19,6 @@ export default function BookmarksPage() {
     const p = getAllProgress();
     const m: Record<string, { chapterId: string; page: number }> = {};
     for (const id of Object.keys(p)) m[id] = { chapterId: p[id].chapterId, page: p[id].page };
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
     setProgressMap(m);
 
     getComicsByIds(ids)
@@ -35,6 +34,27 @@ export default function BookmarksPage() {
       });
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Re-read progress/bookmarks when they change (reader navigation, remote sync).
+  useEffect(() => {
+    const handler = () => {
+      const p = getAllProgress();
+      const m: Record<string, { chapterId: string; page: number }> = {};
+      for (const id of Object.keys(p)) m[id] = { chapterId: p[id].chapterId, page: p[id].page };
+      setProgressMap(m);
+    };
+    window.addEventListener("mangaspace:progress", handler);
+    window.addEventListener("focus", handler);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") handler();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("mangaspace:progress", handler);
+      window.removeEventListener("focus", handler);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

@@ -29,6 +29,7 @@ export function saveProgress(p: ReadingProgress): void {
   const all = getAllProgress();
   all[p.comicId] = { ...p, updatedAt: Date.now() };
   window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
   void syncProgressRemote({ comicId: p.comicId, chapterId: p.chapterId, page: p.page, updatedAt: Date.now() });
 }
 
@@ -48,11 +49,13 @@ export function toggleBookmark(comicId: string): boolean {
   if (idx >= 0) {
     list.splice(idx, 1);
     window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
     void syncBookmarkRemote(comicId, false);
     return false;
   }
   list.unshift(comicId);
   window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
   void syncBookmarkRemote(comicId, true);
   return true;
 }
@@ -119,5 +122,8 @@ export async function hydrateFromRemote(): Promise<void> {
     }
   } catch {
     // best-effort
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
   }
 }
