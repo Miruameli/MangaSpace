@@ -187,17 +187,29 @@ export async function getMangaChapters(mangaId: string): Promise<Chapter[]> {
       byNumber.set(num, c);
     }
   }
-  return [...byNumber.values()].map((c) => ({
-    id: c.id,
-    comicId: mangaId,
-    number: Number(c.attributes?.chapter) || 0,
-    title: c.attributes?.title ?? `Chapter ${c.attributes?.chapter ?? ""}`,
-    pages: [],
-    publishedAt: c.attributes?.publishAt
-      ? new Date(c.attributes.publishAt).toISOString()
-      : new Date().toISOString(),
-    externalUrl: safeExternalUrl(c.attributes?.externalUrl),
-  }));
+  return [...byNumber.values()].map((c) => {
+    const num = Number(c.attributes?.chapter) || 0;
+    const rawTitle = (c.attributes?.title ?? "").trim();
+    const numStr = (c.attributes?.chapter ?? "").trim();
+    const core = rawTitle.replace(/:+\s*$/, "").trim().replace(/\s+/g, " ");
+    const redundant =
+      core === "" ||
+      core === numStr ||
+      core === String(num) ||
+      core.toLowerCase() === `chapter ${numStr}`.toLowerCase() ||
+      core.toLowerCase() === `chapter ${num}`.toLowerCase();
+    return {
+      id: c.id,
+      comicId: mangaId,
+      number: num,
+      title: redundant ? "" : rawTitle,
+      pages: [],
+      publishedAt: c.attributes?.publishAt
+        ? new Date(c.attributes.publishAt).toISOString()
+        : new Date().toISOString(),
+      externalUrl: safeExternalUrl(c.attributes?.externalUrl),
+    };
+  });
 }
 
 // A chapter is preferred over another when it is hosted on MangaDex (readable
