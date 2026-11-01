@@ -1,8 +1,8 @@
 "use client";
 import { getSupabase } from "@/lib/db/supabase";
 import type { ReadingProgress } from "@/types/comic";
-const PROGRESS_KEY = "mangaspace:progress";
-const BOOKMARKS_KEY = "mangaspace:bookmarks";
+export const PROGRESS_KEY = "mangaspace:progress";
+export const BOOKMARKS_KEY = "mangaspace:bookmarks";
 function safeParse<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;
   try {
@@ -27,6 +27,8 @@ export function getProgress(comicId: string): ReadingProgress | null {
 export function saveProgress(p: ReadingProgress): void {
   if (typeof window === "undefined") return;
   const all = getAllProgress();
+  const existing = all[p.comicId];
+  if (existing && existing.chapterId === p.chapterId && existing.page === p.page) return;
   all[p.comicId] = { ...p, updatedAt: Date.now() };
   window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
   window.dispatchEvent(new CustomEvent("mangaspace:progress"));
@@ -86,11 +88,8 @@ export async function syncBookmarkRemote(comicId: string, add: boolean): Promise
   const sb = getSupabase();
   if (!sb || !uid) return;
   try {
-    if (add) {
-      await sb.from("bookmarks").upsert({ user_id: uid, comic_id: comicId });
-    } else {
-      await sb.from("bookmarks").delete().eq("user_id", uid).eq("comic_id", comicId);
-    }
+    if (add) await sb.from("bookmarks").insert({ user_id: uid, comic_id: comicId });
+    else await sb.from("bookmarks").delete().eq("user_id", uid).eq("comic_id", comicId);
   } catch {
     // best-effort
   }
@@ -123,7 +122,5 @@ export async function hydrateFromRemote(): Promise<void> {
   } catch {
     // best-effort
   }
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-  }
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
 }
