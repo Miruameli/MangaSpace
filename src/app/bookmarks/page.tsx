@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getComicsByIds } from "@/app/actions/comics";
-import { getAllBookmarks, getAllProgress } from "@/lib/storage/progress";
+import { getAllBookmarks, getAllProgress, PROGRESS_KEY, BOOKMARKS_KEY } from "@/lib/storage/progress";
 import type { Comic } from "@/types/comic";
 
 export default function BookmarksPage() {
@@ -38,23 +38,35 @@ export default function BookmarksPage() {
     };
   }, []);
 
-  // Re-read progress/bookmarks when they change (reader navigation, remote sync).
+  // Re-read progress/bookmarks when they change (cross-tab, reader navigation, remote sync).
   useEffect(() => {
-    const handler = () => {
+    const refreshAll = () => {
       const p = getAllProgress();
       const m: Record<string, { chapterId: string; page: number }> = {};
       for (const id of Object.keys(p)) m[id] = { chapterId: p[id].chapterId, page: p[id].page };
       setProgressMap(m);
+
+      // Re-fetch comics when bookmarks change
+      const ids = getAllBookmarks();
+      getComicsByIds(ids)
+        .then((results) => setComics(results))
+        .catch(() => setFailed(true));
     };
-    window.addEventListener("mangaspace:progress", handler);
-    window.addEventListener("focus", handler);
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PROGRESS_KEY || e.key === BOOKMARKS_KEY) refreshAll();
+    };
+    window.addEventListener("mangaspace:progress", refreshAll);
+    window.addEventListener("focus", refreshAll);
+    window.addEventListener("storage", onStorage);
     const onVisibility = () => {
-      if (document.visibilityState === "visible") handler();
+      if (document.visibilityState === "visible") refreshAll();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("mangaspace:progress", handler);
-      window.removeEventListener("focus", handler);
+      window.removeEventListener("mangaspace:progress", refreshAll);
+      window.removeEventListener("focus", refreshAll);
+      window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
