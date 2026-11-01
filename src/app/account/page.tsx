@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ProfileSection } from "@/components/account/profile-section";
@@ -10,15 +11,21 @@ export default function AccountPage() {
   const { configured, user, loading, profile } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!configured) {
+      router.replace("/");
+    } else if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [configured, loading, user, router]);
+
   if (!configured) {
-    router.replace("/");
     return null;
   }
   if (loading) {
     return <p className="max-w-2xl mx-auto">Loading…</p>;
   }
   if (!user) {
-    router.replace("/login");
     return null;
   }
 
