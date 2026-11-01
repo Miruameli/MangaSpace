@@ -14,6 +14,38 @@ import {
 } from "./mangadex-helpers";
 
 export { API, validUuid } from "./mangadex-helpers";
+// Retry with exponential backoff for rate-limit resilience.
+// MangaDex allows 5 req/s burst, 100 req/min sustained; on 429 we back off
+// and respect the Retry-After header when present.
+async function fetchWithRetry(
+  url: string,
+  init?: RequestInit,
+  maxRetries = 3,
+): Promise<Response> {
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetchWithRetry(url, init);
+      if (res.status === 429 && attempt < maxRetries) {
+        const retryAfter = res.headers.get("retry-after");
+        const delay = retryAfter ? Number(retryAfter) * 1000 : 2 ** attempt * 1000;
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, delay);
+        await promise;
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      if (attempt < maxRetries) {
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, 2 ** attempt * 1000);
+        await promise;
+      }
+    }
+  }
+  throw lastErr ?? new Error("fetch failed");
+}
 
 type ListMangaOptions = {
   limit?: number;
@@ -93,7 +125,7 @@ let tagCache: Map<string, string> | null = null;
 async function resolveTagId(name: string): Promise<string | undefined> {
   if (!tagCache) {
     try {
-      const res = await fetch(`${API}/manga/tag`, { next: { revalidate: 3600 } });
+      const res = await fetchWithRetry(`${API}/manga/tag`, { next: { revalidate: 3600 } });
       if (!res.ok) return undefined;
       const json = (await safeJson(res)) as { data?: Array<{ id: string; attributes?: { name?: Record<string, string> } }> } | null;
       tagCache = new Map();
@@ -106,6 +138,26 @@ async function resolveTagId(name: string): Promise<string | undefined> {
     }
   }
   return tagCache.get(name.toLowerCase());
+}
+// Genre cache: fetches the MangaDex /manga/tag endpoint once, filters to
+// group === "genre", and caches the sorted list. Revalidates every hour.
+let genreCache: string[] | null = null;
+export async function getAllGenres(): Promise<string[]> {
+  if (genreCache) return genreCache;
+  try {
+    const res = await fetchWithRetry(`${API}/manga/tag`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const json = (await safeJson(res)) as { data?: Array<{ attributes?: { group?: string; name?: Record<string, string> } }> } | null;
+    const genres = (json?.data ?? [])
+      .filter((t) => t.attributes?.group === "genre")
+      .map((t) => pickText(t.attributes?.name))
+      .filter(Boolean)
+      .sort() as string[];
+    genreCache = genres;
+    return genres;
+  } catch {
+    return [];
+  }
 }
 
 export async function listManga(...args: unknown[]): Promise<Comic[]> {
@@ -126,7 +178,7 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
   }
   if (language) params.append("translatedLanguage[]", language);
 
-  const res = await fetch(`${API}/manga?${params.toString()}`, {
+  const res = await fetchWithRetry(`${API}/manga?${params.toString()}`, {
     next: { revalidate: 300 },
   });
   if (!res.ok) return [];
@@ -147,7 +199,7 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
 
 export async function getManga(id: string): Promise<Comic | undefined> {
   if (!validUuid(id)) return undefined;
-  const res = await fetch(`${API}/manga/${id}?includes[]=cover_art&includes[]=author`, {
+  const res = await fetchWithRetry(`${API}/manga/${id}?includes[]=cover_art&includes[]=author`, {
     next: { revalidate: 300 },
   });
   if (!res.ok) return undefined;
@@ -185,7 +237,7 @@ export async function getMangaChapters(mangaId: string): Promise<Chapter[]> {
     params.append("translatedLanguage[]", "en");
     params.append("translatedLanguage[]", "id");
     params.set("order[chapter]", "asc");
-    const res = await fetch(`${API}/manga/${mangaId}/feed?${params.toString()}`, {
+    const res = await fetchWithRetry(`${API}/manga/${mangaId}/feed?${params.toString()}`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) break;
@@ -239,7 +291,7 @@ function prefersChapter(a: MdChapter, b: MdChapter): boolean {
 
 export async function getChapterPages(chapterId: string): Promise<string[]> {
   if (!validUuid(chapterId)) return [];
-  const res = await fetch(`${API}/at-home/server/${chapterId}`, {
+  const res = await fetchWithRetry(`${API}/at-home/server/${chapterId}`, {
     next: { revalidate: 300 },
   });
   if (!res.ok) return [];

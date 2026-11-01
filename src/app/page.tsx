@@ -1,4 +1,4 @@
-import { listComics } from "@/lib/data";
+import { listComics, getAllGenres } from "@/lib/data";
 import { LibraryView } from "@/components/library/view";
 
 function readParam(
@@ -29,7 +29,10 @@ export default async function HomePage({
   const genre = genreRaw === "" ? "all" : genreRaw;
   const status = normalizeStatus(readParam(sp, "status"));
   const language = readParam(sp, "language") ?? "all";
-  const comics = await listComics({ query: search, genre, status, language });
+  const [comics, allGenres] = await Promise.all([
+    listComics({ query: search, genre, status, language }),
+    getAllGenres(),
+  ]);
   return (
     <LibraryView
       initialComics={comics}
@@ -37,6 +40,7 @@ export default async function HomePage({
       initialGenre={genre}
       initialStatus={status}
       initialLanguage={language}
+      allGenres={allGenres}
     />
   );
 }

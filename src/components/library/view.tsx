@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ALL_GENRES } from "@/lib/data";
 import { ComicCard } from "@/components/comic-card";
 import { useLibrarySearch } from "./use-search";
 import type { Comic } from "@/types/comic";
@@ -21,6 +20,7 @@ type LibraryViewProps = {
   genre?: string;
   language?: string;
   status?: string;
+  allGenres?: string[];
 };
 
 export function LibraryView(props: LibraryViewProps) {
@@ -38,10 +38,9 @@ export function LibraryView(props: LibraryViewProps) {
   const [status, setStatus] = useState(initialStatus);
 
   const genres = useMemo(
-    () => Array.from(new Set([...ALL_GENRES, ...initialComics.flatMap((c) => c.genres)])).sort(),
-    [initialComics],
+    () => Array.from(new Set([...(props.allGenres ?? []), ...initialComics.flatMap((c) => c.genres)])).sort(),
+    [initialComics, props.allGenres],
   );
-
   const filtered = useMemo(() => {
     return comics.filter((c) => {
       if (genre !== "all" && !c.genres.includes(genre)) return false;
