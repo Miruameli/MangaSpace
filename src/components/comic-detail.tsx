@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { FALLBACK_COVER } from "@/lib/data/mangadex-helpers";
 import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
 import { Markdown } from "@/components/markdown";
@@ -26,6 +27,7 @@ export function chapterLabel(number: number, title: string): string {
 export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefined }) {
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
+  const [coverFailed, setCoverFailed] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
@@ -53,11 +55,12 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
       <div>
         <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
           <Image
-            src={comic.cover}
+            src={coverFailed ? FALLBACK_COVER : comic.cover}
             alt={comic.title}
             fill
             sizes="(max-width: 768px) 100vw, 240px"
             className="object-cover"
+            onError={() => setCoverFailed(true)}
           />
         </div>
         <button
