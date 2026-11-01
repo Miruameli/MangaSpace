@@ -27,7 +27,7 @@ export function useLibrarySearch(
   const [results, setResults] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressMap] = useState<Record<string, ReadingProgress>>(() =>
+  const [progressMap, setProgressMap] = useState<Record<string, ReadingProgress>>(() =>
     getAllProgress(),
   );
 
@@ -71,6 +71,20 @@ export function useLibrarySearch(
       cancelled = true;
     };
   }, [debouncedQuery]);
-
+  // Re-read progress when it changes (cross-tab, reader navigation, remote sync).
+  useEffect(() => {
+    const handler = () => setProgressMap(getAllProgress());
+    window.addEventListener("mangaspace:progress", handler);
+    window.addEventListener("focus", handler);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") handler();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("mangaspace:progress", handler);
+      window.removeEventListener("focus", handler);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
   return { query, setQuery, debouncedQuery, loading, error, comics, progressMap };
 }
