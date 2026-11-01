@@ -28,13 +28,15 @@ export default async function HomePage({
   const genreRaw = (readParam(sp, "genre") ?? "all").trim();
   const genre = genreRaw === "" ? "all" : genreRaw;
   const status = normalizeStatus(readParam(sp, "status"));
-  const comics = await listComics({ query: search, genre, status });
+  const language = readParam(sp, "language") ?? "all";
+  const comics = await listComics({ query: search, genre, status, language });
   return (
     <LibraryView
       initialComics={comics}
       initialQuery={search}
       initialGenre={genre}
       initialStatus={status}
+      initialLanguage={language}
     />
   );
 }

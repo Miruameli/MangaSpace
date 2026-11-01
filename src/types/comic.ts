@@ -9,6 +9,7 @@ export type Comic = {
   genres: string[];
   status: ComicStatus;
   updatedAt: string;
+  language?: "en" | "id";
   chapters: Chapter[];
 };
 

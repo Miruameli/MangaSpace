@@ -9,12 +9,20 @@ export function getDataSource(): DataSource {
   return v === "mock" ? "mock" : "mangadex";
 }
 
+const VALID_STATUSES: Record<string, true> = {
+  ongoing: true,
+  completed: true,
+  hiatus: true,
+  cancelled: true,
+};
+
 type ListComicsOptions = {
   query?: string;
   search?: string;
   q?: string;
   genre?: string;
   status?: string;
+  language?: string;
   limit?: number;
   offset?: number;
 };
@@ -35,9 +43,10 @@ function normalizeListComicsArgs(args: unknown[]): ListComicsOptions {
   if (args.length > 2 && typeof args[2] === "object") Object.assign(opts, args[2] as ListComicsOptions);
   if (opts.genre === "all") opts.genre = undefined;
   if (opts.status === "all") opts.status = undefined;
+  if (opts.language === "all") opts.language = undefined;
   if (opts.status) {
     const s = String(opts.status).trim().toLowerCase();
-    opts.status = new Set(["ongoing", "completed", "hiatus", "cancelled"]).has(s) ? s : undefined;
+    opts.status = VALID_STATUSES[s] ? s : undefined;
   }
   return opts;
 }
@@ -52,12 +61,14 @@ export async function listComics(...args: unknown[]): Promise<Comic[]> {
   const query = (opts.query ?? opts.search ?? opts.q ?? "").trim();
   const genre = normalizeFilter(opts.genre);
   const status = normalizeFilter(opts.status);
+  const language = normalizeFilter(opts.language);
   if (getDataSource() === "mock") {
     const q = query.toLowerCase();
     return mock.getAllComics().filter((c) => {
       if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
       if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
       if (status && c.status !== status.toLowerCase()) return false;
+      if (language && c.language !== language) return false;
       return true;
     });
   }
@@ -69,6 +80,7 @@ export async function listComics(...args: unknown[]): Promise<Comic[]> {
       if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
       if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
       if (status && c.status !== status.toLowerCase()) return false;
+      if (language && c.language !== language) return false;
       return true;
     });
   }
@@ -93,16 +105,12 @@ export async function getChapter(
   comic: Comic,
   chapterId: string,
 ): Promise<Chapter | undefined> {
-  const ch = comic.chapters.find((c) => c.id === chapterId);
-  if (!ch) return undefined;
-  if (getDataSource() === "mock") return ch;
-  try {
-    return await md.hydrateChapter(ch);
-  } catch {
-    // Page-image fetch failed (network/5xx). Preserve prior semantics: surface
-    // as "not found" rather than crashing the Server Component.
-    return undefined;
-  }
+  if (!comic) return undefined;
+  const chapter = comic.chapters.find((ch) => ch.id === chapterId);
+  if (!chapter) return undefined;
+  if (chapter.pages.length > 0) return chapter;
+  // Hydrate pages from the at-home server only for hosted chapters.
+  return md.hydrateChapter(chapter);
 }
 
 export { mock };

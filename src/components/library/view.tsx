@@ -15,9 +15,11 @@ type LibraryViewProps = {
   initialSearch?: string;
   initialGenre?: string;
   initialStatus?: string;
+  initialLanguage?: string;
   query?: string;
   search?: string;
   genre?: string;
+  language?: string;
   status?: string;
 };
 
@@ -27,6 +29,8 @@ export function LibraryView(props: LibraryViewProps) {
     props.initialQuery ?? props.initialSearch ?? props.query ?? props.search ?? "";
   const initialGenre = props.initialGenre ?? props.genre ?? "all";
   const initialStatus = props.initialStatus ?? props.status ?? "all";
+  const initialLanguage = props.initialLanguage ?? props.language ?? "all";
+  const [language, setLanguage] = useState(initialLanguage);
 
   const { query, setQuery, loading, error, comics, progressMap } =
     useLibrarySearch(initialComics, initialQuery);
@@ -42,9 +46,10 @@ export function LibraryView(props: LibraryViewProps) {
     return comics.filter((c) => {
       if (genre !== "all" && !c.genres.includes(genre)) return false;
       if (status !== "all" && c.status !== status) return false;
+      if (language !== "all" && c.language !== language) return false;
       return true;
     });
-  }, [comics, genre, status]);
+  }, [comics, genre, status, language]);
 
   // Keep the active filters reflected in the URL so views are shareable and
   // survive reloads. Also react to browser back/forward navigation.
@@ -60,13 +65,15 @@ export function LibraryView(props: LibraryViewProps) {
     else params.delete("genre");
     if (status && status !== "all") params.set("status", status);
     else params.delete("status");
+    if (language && language !== "all") params.set("language", language);
+    else params.delete("language");
     const searchStr = params.toString();
     const newUrl = `${window.location.pathname}${searchStr ? `?${searchStr}` : ""}${window.location.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (newUrl !== currentUrl) {
       window.history.replaceState(null, "", newUrl);
     }
-  }, [query, genre, status]);
+  }, [query, genre, status, language]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,9 +84,11 @@ export function LibraryView(props: LibraryViewProps) {
       const nextGenre = params.get("genre") ?? "all";
       const nextStatusRaw = (params.get("status") ?? "all").toLowerCase();
       const nextStatus = nextStatusRaw === "" ? "all" : nextStatusRaw;
+      const nextLanguage = params.get("language") ?? "all";
       setQuery(nextSearch);
       setGenre(nextGenre);
       setStatus(nextStatus);
+      setLanguage(nextLanguage);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -158,6 +167,15 @@ export function LibraryView(props: LibraryViewProps) {
           <option value="ongoing">Ongoing</option>
           <option value="completed">Completed</option>
         </select>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        >
+          <option value="all">All languages</option>
+          <option value="en">English</option>
+          <option value="id">Indonesian</option>
+        </select>
       </div>
 
       {loading && <p className="text-sm text-zinc-500">Loading…</p>}
@@ -165,17 +183,18 @@ export function LibraryView(props: LibraryViewProps) {
       {!loading && filtered.length === 0 && !error && (
         <div className="text-center py-12">
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-            {query || genre !== "all" || status !== "all"
+            {query || genre !== "all" || status !== "all" || language !== "all"
               ? "No comics match your search or filters."
               : "No comics found."}
           </p>
-          {(query || genre !== "all" || status !== "all") && (
+          {(query || genre !== "all" || status !== "all" || language !== "all") && (
             <button
               type="button"
               onClick={() => {
                 setQuery("");
                 setGenre("all");
                 setStatus("all");
+                setLanguage("all");
               }}
               className="text-sm text-blue-500 hover:underline"
             >
