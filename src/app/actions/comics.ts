@@ -18,12 +18,21 @@ export async function searchComics(...args: unknown[]): Promise<Comic[]> {
   } else if (a && typeof a === "object") {
     Object.assign(opts, a as Record<string, unknown>);
   }
+  // Validate the query before forwarding it to MangaDex: trim it, drop empty or
+  // whitespace-only input, and cap the length so one over-long or abusive input
+  // cannot bloat the upstream request or the response.
+  const query = typeof opts.query === "string" ? opts.query.trim() : "";
+  if (!query || query.length > MAX_QUERY_LENGTH) return [];
+  opts.query = query;
   return listComics(opts as Parameters<typeof listComics>[0]);
 }
 
 // Upper bounds so one request cannot fan out without limit.
 const MAX_BOOKMARK_IDS = 50;
 const FETCH_CONCURRENCY = 4;
+// A search query longer than this is almost certainly noise or abuse; cap it
+// before forwarding to MangaDex.
+const MAX_QUERY_LENGTH = 100;
 
 // Resolves bookmark IDs to comics on the server. Bookmark IDs live in
 // localStorage, so the bookmarks page has to stay a client component — but the
