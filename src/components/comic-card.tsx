@@ -8,7 +8,7 @@ export function ComicCard({ comic }: { comic: Comic }) {
       href={`/comic/${comic.id}`}
       className="group block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-lg transition"
     >
-      <div className="relative aspect-[2/3] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+      <div className="relative aspect-[7/10] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         <Image
           src={comic.cover}
           alt={comic.title}
