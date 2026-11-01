@@ -77,7 +77,9 @@ export default function BookmarksPage() {
                   </Link>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     {prog && ch
-                      ? `Ch.${ch.number} · page ${prog.page + 1}/${ch.pages.length}`
+                      ? ch.pages.length > 0
+                        ? `Ch.${ch.number} · page ${prog.page + 1}/${ch.pages.length}`
+                        : `Ch.${ch.number} · page ${prog.page + 1}`
                       : "Not started"}
                   </p>
                 </div>
