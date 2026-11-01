@@ -245,6 +245,13 @@ export async function hydrateChapter(chapter: Chapter): Promise<Chapter> {
   // an external source. External chapters expose no page images here, so point
   // the reader at the original source instead of an empty gallery.
   if (chapter.externalUrl) return { ...chapter, pages: [] };
-  const pages = await getChapterPages(chapter.id);
-  return { ...chapter, pages };
+  try {
+    const pages = await getChapterPages(chapter.id);
+    if (pages.length === 0) {
+      return { ...chapter, pages: [], loadFailed: true };
+    }
+    return { ...chapter, pages };
+  } catch {
+    return { ...chapter, pages: [], loadFailed: true };
+  }
 }
