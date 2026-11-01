@@ -18,5 +18,5 @@ export function getNextTarget(
   const idx = comic.chapters.findIndex((c) => c.id === chapter.id);
   const next = idx >= 0 ? comic.chapters[idx + 1] : undefined;
   if (!next) return null;
-  return { kind: "chapter", chapterId: next.id, page: pageIndex };
+  return { kind: "chapter", chapterId: next.id, page: 0 };
 }
