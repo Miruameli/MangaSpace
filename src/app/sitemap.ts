@@ -45,32 +45,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Dynamic comic routes — paginate to stay within MangaDex's 100-limit cap
+  // Dynamic comic routes — paginate to stay within MangaDex's 100-limit cap.
+  // Degraded-state guard: if MangaDex is unreachable the fetch throws, so we
+  // log and keep whatever was gathered rather than rejecting the whole
+  // sitemap — a 500 here would also hide the static routes crawlers could
+  // still use, which is worse than a partial sitemap that ISR heals later.
   const comicRoutes: MetadataRoute.Sitemap = [];
-  let offset = 0;
-  while (comicRoutes.length < MAX_COMICS) {
-    const page = await listComics({ limit: MANGA_PAGE, offset });
-    if (page.length === 0) break;
-    for (const comic of page) {
-      comicRoutes.push({
-        url: `${baseUrl}/comic/${comic.id}`,
-        lastModified: comic.updatedAt ? new Date(comic.updatedAt) : new Date(),
-        changeFrequency: "weekly",
-        priority: 0.9,
-      });
+  try {
+    let offset = 0;
+    while (comicRoutes.length < MAX_COMICS) {
+      const page = await listComics({ limit: MANGA_PAGE, offset });
+      if (page.length === 0) break;
+      for (const comic of page) {
+        comicRoutes.push({
+          url: `${baseUrl}/comic/${comic.id}`,
+          lastModified: comic.updatedAt ? new Date(comic.updatedAt) : new Date(),
+          changeFrequency: "weekly",
+          priority: 0.9,
+        });
+      }
+      offset += page.length;
+      if (page.length < MANGA_PAGE) break; // last page
     }
-    offset += page.length;
-    if (page.length < MANGA_PAGE) break; // last page
+  } catch (err) {
+    console.warn("[sitemap] comic fetch failed; serving partial + static routes:", err);
   }
 
-  // Genre filter routes (optional — helps search engines discover genre pages)
-  const genres = await getAllGenres();
-  const genreRoutes: MetadataRoute.Sitemap = genres.slice(0, 50).map((genre) => ({
-    url: `${baseUrl}/?genre=${encodeURIComponent(genre)}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.6,
-  }));
+  // Genre filter routes (optional — helps search engines discover genre pages).
+  // getAllGenres() already swallows errors internally (returns []), but guard
+  // defensively so a throw can never 500 the whole sitemap.
+  let genreRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const genres = await getAllGenres();
+    genreRoutes = genres.slice(0, 50).map((genre) => ({
+      url: `${baseUrl}/?genre=${encodeURIComponent(genre)}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+  } catch (err) {
+    console.warn("[sitemap] genre fetch failed; skipping genre routes:", err);
+  }
 
   return [...staticRoutes, ...comicRoutes, ...genreRoutes];
 }

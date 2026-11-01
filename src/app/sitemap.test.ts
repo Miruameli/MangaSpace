@@ -74,4 +74,16 @@ describe("sitemap", () => {
       .filter((p) => p.includes("genre="));
     expect(genrePaths.length).toBeGreaterThan(0);
   });
+
+  it("degrades to static routes when the comic fetch throws (MangaDex down)", async () => {
+    // A hard network failure makes listComics reject; the sitemap must still
+    // resolve with the static routes rather than 500-ing the whole file and
+    // hiding every route crawlers could otherwise reach.
+    listComics.mockRejectedValue(new Error("MangaDex unreachable"));
+    const urls = await sitemap();
+    const paths = urls.map((u) => new URL(u.url).pathname);
+    expect(paths).toContain("/");
+    expect(paths).toContain("/bookmarks");
+    expect(paths).not.toContain("/comic/anything");
+  });
 });
