@@ -29,32 +29,58 @@ export function saveProgress(p: ReadingProgress): void {
   const all = getAllProgress();
   const existing = all[p.comicId];
   if (existing && existing.chapterId === p.chapterId && existing.page === p.page) return;
-  all[p.comicId] = p;
+  all[p.comicId] = { ...p, updatedAt: Date.now() };
   window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-  }
-}
-
-export function isBookmarked(comicId: string): boolean {
-  return getAllBookmarks().includes(comicId);
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+  void syncProgressRemote({ comicId: p.comicId, chapterId: p.chapterId, page: p.page, updatedAt: Date.now() });
 }
 
 export function getAllBookmarks(): string[] {
   if (typeof window === "undefined") return [];
   return safeParse<string[]>(window.localStorage.getItem(BOOKMARKS_KEY), []);
 }
+
+export function isBookmarked(comicId: string): boolean {
+  return getAllBookmarks().includes(comicId);
+}
+
 export function toggleBookmark(comicId: string): boolean {
   if (typeof window === "undefined") return false;
-  const all = getAllBookmarks();
-  const idx = all.indexOf(comicId);
-  if (idx >= 0) all.splice(idx, 1);
-  else all.push(comicId);
-  window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(all));
-  if (typeof window !== "undefined") {
+  const list = getAllBookmarks();
+  const idx = list.indexOf(comicId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+    void syncBookmarkRemote(comicId, false);
+    return false;
   }
-  return idx < 0;
+  list.unshift(comicId);
+  window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+  void syncBookmarkRemote(comicId, true);
+  return true;
+}
+
+async function currentUserId(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+}
+
+export async function syncProgressRemote(p: ReadingProgress): Promise<void> {
+  const uid = await currentUserId();
+  const sb = getSupabase();
+  if (!sb || !uid) return;
+  try {
+    await sb.from("reading_progress").upsert(
+      { user_id: uid, comic_id: p.comicId, chapter_id: p.chapterId, page: p.page, updated_at: new Date(p.updatedAt).toISOString() },
+      { onConflict: "user_id,comic_id" },
+    );
+  } catch {
+    // best-effort; localStorage remains source of truth
+  }
 }
 
 export async function syncBookmarkRemote(comicId: string, add: boolean): Promise<void> {
@@ -96,18 +122,5 @@ export async function hydrateFromRemote(): Promise<void> {
   } catch {
     // best-effort
   }
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-  }
-}
-
-async function currentUserId(): Promise<string | null> {
-  const sb = getSupabase();
-  if (!sb) return null;
-  try {
-    const { data: { user } } = await sb.auth.getUser();
-    return user?.id ?? null;
-  } catch {
-    return null;
-  }
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
 }

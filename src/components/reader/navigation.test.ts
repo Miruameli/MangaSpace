@@ -29,9 +29,9 @@ describe("reader navigation", () => {
     expect(t).toEqual({ kind: "page", pageIndex: 1 });
   });
 
-  it("advances to next chapter preserving page index at chapter boundary", () => {
+  it("advances to next chapter resetting to first page at chapter boundary", () => {
     const t = getNextTarget(comic, comic.chapters[0], 2, 3);
-    expect(t).toEqual({ kind: "chapter", chapterId: "c-ch2", page: 2 });
+    expect(t).toEqual({ kind: "chapter", chapterId: "c-ch2", page: 0 });
   });
 
   it("returns null on last page of last chapter", () => {
