@@ -52,7 +52,7 @@ export function ReaderView({
         <img
           src={chapter.pages[safeIndex]}
           alt={`Page ${safeIndex + 1}`}
-          className={fitWidth ? "w-full max-w-3xl" : "h-[80vh]"}
+          className={fitWidth ? "w-full max-w-3xl object-contain" : "h-[80vh] w-auto max-w-full object-contain"}
         />
         <button
           type="button"
