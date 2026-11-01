@@ -163,7 +163,26 @@ export function LibraryView(props: LibraryViewProps) {
       {loading && <p className="text-sm text-zinc-500">Loading…</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
       {!loading && filtered.length === 0 && !error && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">No comics found.</p>
+        <div className="text-center py-12">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+            {query || genre !== "all" || status !== "all"
+              ? "No comics match your search or filters."
+              : "No comics found."}
+          </p>
+          {(query || genre !== "all" || status !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setGenre("all");
+                setStatus("all");
+              }}
+              className="text-sm text-blue-500 hover:underline"
+            >
+              Clear search and filters
+            </button>
+          )}
+        </div>
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {filtered.map((c) => (
