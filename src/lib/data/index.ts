@@ -1,13 +1,5 @@
 import type { Chapter, Comic } from "@/types/comic";
-import * as mock from "./comics";
 import * as md from "./mangadex";
-
-export type DataSource = "mock" | "mangadex";
-
-export function getDataSource(): DataSource {
-  const v = (process.env.NEXT_PUBLIC_DATA_SOURCE || "mangadex").toLowerCase();
-  return v === "mock" ? "mock" : "mangadex";
-}
 
 const VALID_STATUSES: Record<string, true> = {
   ongoing: true,
@@ -62,37 +54,11 @@ export async function listComics(...args: unknown[]): Promise<Comic[]> {
   const genre = normalizeFilter(opts.genre);
   const status = normalizeFilter(opts.status);
   const language = normalizeFilter(opts.language);
-  if (getDataSource() === "mock") {
-    const q = query.toLowerCase();
-    return mock.getAllComics().filter((c) => {
-      if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
-      if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
-      if (status && c.status !== status.toLowerCase()) return false;
-      if (language && c.language !== language) return false;
-      return true;
-    });
-  }
-  try {
-    return await md.listManga(opts.limit ?? 24, opts.offset ?? 0, query, { genre, status });
-  } catch {
-    const q = query.toLowerCase();
-    return mock.getAllComics().filter((c) => {
-      if (q && !`${c.title} ${c.author} ${c.description}`.toLowerCase().includes(q)) return false;
-      if (genre && !c.genres.some((g) => g.toLowerCase() === genre.toLowerCase())) return false;
-      if (status && c.status !== status.toLowerCase()) return false;
-      if (language && c.language !== language) return false;
-      return true;
-    });
-  }
+  return md.listManga(opts.limit ?? 24, opts.offset ?? 0, query, { genre, status, language });
 }
 
 export async function getComic(id: string): Promise<Comic | undefined> {
-  if (getDataSource() === "mock") return mock.getComic(id);
-  try {
-    return await md.getManga(id);
-  } catch {
-    return mock.getComic(id);
-  }
+  return md.getManga(id);
 }
 
 // Resolve a single chapter from a comic the caller has ALREADY loaded.
@@ -106,12 +72,11 @@ export async function getChapter(
   chapterId: string,
 ): Promise<Chapter | undefined> {
   if (!comic) return undefined;
-  const chapter = comic.chapters.find((ch) => ch.id === chapterId);
-  if (!chapter) return undefined;
-  if (chapter.pages.length > 0) return chapter;
+  const ch = comic.chapters.find((c) => c.id === chapterId);
+  if (!ch) return undefined;
+  if (ch.pages.length > 0) return ch;
   // Hydrate pages from the at-home server only for hosted chapters.
-  return md.hydrateChapter(chapter);
+  return md.hydrateChapter(ch);
 }
 
-export { mock };
-export const ALL_GENRES = mock.ALL_GENRES;
+export { getAllGenres } from "./mangadex";
