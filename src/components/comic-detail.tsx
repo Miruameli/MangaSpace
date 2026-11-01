@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
+import { Markdown } from "@/components/markdown";
 
 // The comic is resolved on the server (see app/comic/[id]/page.tsx); this
 // client component only owns the interactive bookmark and progress state.
@@ -68,7 +69,9 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
             </span>
           ))}
         </div>
-        <p className="mt-4 text-sm leading-relaxed">{comic.description}</p>
+        <div className="mt-4 text-sm leading-relaxed">
+          <Markdown content={comic.description} />
+        </div>
 
         {progress && (
           <div className="mt-4 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-3 text-sm">
