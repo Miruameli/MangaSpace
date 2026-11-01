@@ -25,7 +25,7 @@ async function fetchWithRetry(
   let lastErr: Error | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const res = await fetchWithRetry(url, init);
+      const res = await fetch(url, init);
       if (res.status === 429 && attempt < maxRetries) {
         const retryAfter = res.headers.get("retry-after");
         const delay = retryAfter ? Number(retryAfter) * 1000 : 2 ** attempt * 1000;
