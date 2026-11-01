@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FALLBACK_COVER } from "@/lib/data/mangadex-helpers";
-import { getProgress, isBookmarked, toggleBookmark } from "@/lib/storage/progress";
+import { getProgress, isBookmarked, toggleBookmark, PROGRESS_KEY, BOOKMARKS_KEY } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
 import { Markdown } from "@/components/markdown";
 
@@ -30,9 +30,30 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
   const [coverFailed, setCoverFailed] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
-    setProgress(getProgress(id));
-    setBookmarked(isBookmarked(id));
+    const refresh = () => {
+      setProgress(getProgress(id));
+      setBookmarked(isBookmarked(id));
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PROGRESS_KEY || e.key === BOOKMARKS_KEY) refresh();
+    };
+    // Initial sync
+    refresh();
+    window.addEventListener("mangaspace:progress", refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", onStorage);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("mangaspace:progress", refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [id]);
 
   if (!comic) {
