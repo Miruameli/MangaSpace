@@ -15,7 +15,7 @@ const themeInitScript = `
     var stored = localStorage.getItem("mangaspace:theme");
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var dark = stored ? stored === "dark" : prefersDark;
-    if (dark) document.documentElement.classList.add("dark");
+    document.documentElement.classList.toggle("dark", dark);
   } catch (e) {}
 })();
 `;
