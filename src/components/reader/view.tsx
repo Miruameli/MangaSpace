@@ -43,7 +43,7 @@ export function ReaderView({
           onClick={toggleFit}
           className="text-xs rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1"
         >
-          {fitWidth ? "Fit width" : "Fit height"}
+          {fitWidth ? "Fit height" : "Fit width"}
         </button>
       </div>
 
