@@ -216,7 +216,6 @@ export async function getManga(id: string): Promise<Comic | undefined> {
     cover: coverUrl(m),
     genres: tagNames(m),
     status: statusFromManga(m.attributes?.status),
-    language: undefined,
     updatedAt: new Date().toISOString(),
     chapters,
   };

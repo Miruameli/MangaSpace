@@ -4,12 +4,14 @@ import type { Chapter, Comic } from "@/types/comic";
 // Stub the mangadex data layer so getChapter is exercised with no network and
 // so we can assert it does NOT re-fetch the manga (#33): a loaded comic is the
 // only source of truth for resolving a chapter.
-const { getManga, hydrateChapter } = vi.hoisted(() => ({
+const { getManga, hydrateChapter, listManga, getAllGenres } = vi.hoisted(() => ({
   getManga: vi.fn(),
   hydrateChapter: vi.fn(async (c: Chapter) => c),
+  listManga: vi.fn(async () => []),
+  getAllGenres: vi.fn(async () => []),
 }));
 
-vi.mock("./mangadex", () => ({ getManga, hydrateChapter }));
+vi.mock("./mangadex", () => ({ getManga, hydrateChapter, listManga, getAllGenres }));
 
 import { getChapter } from "./index";
 

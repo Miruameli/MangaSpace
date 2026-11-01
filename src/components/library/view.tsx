@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ComicCard } from "@/components/comic-card";
 import { useLibrarySearch } from "./use-search";
 import type { Comic } from "@/types/comic";
@@ -31,6 +32,7 @@ export function LibraryView(props: LibraryViewProps) {
   const initialStatus = props.initialStatus ?? props.status ?? "all";
   const initialLanguage = props.initialLanguage ?? props.language ?? "all";
   const [language, setLanguage] = useState(initialLanguage);
+  const router = useRouter();
 
   const { query, setQuery, loading, error, comics, progressMap } =
     useLibrarySearch(initialComics, initialQuery);
@@ -45,10 +47,24 @@ export function LibraryView(props: LibraryViewProps) {
     return comics.filter((c) => {
       if (genre !== "all" && !c.genres.includes(genre)) return false;
       if (status !== "all" && c.status !== status) return false;
-      if (language !== "all" && c.language !== language) return false;
+      // Server already filters by language via translatedLanguage[] (mangadex.ts:179).
+      // Comic.language is never populated from MangaDex, so a client-side check
+      // here would discard every result when a language filter is active.
       return true;
     });
-  }, [comics, genre, status, language]);
+  }, [comics, genre, status]);
+
+  // Server-side filter (translatedLanguage[]) requires a full navigation so
+  // page.tsx re-fetches with the new language param. replaceState alone
+  // would only rewrite the URL without triggering the server component.
+  const onLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value;
+    setLanguage(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next && next !== "all") params.set("language", next);
+    else params.delete("language");
+    router.replace(`${window.location.pathname}?${params.toString()}`);
+  };
 
   // Keep the active filters reflected in the URL so views are shareable and
   // survive reloads. Also react to browser back/forward navigation.
@@ -64,15 +80,13 @@ export function LibraryView(props: LibraryViewProps) {
     else params.delete("genre");
     if (status && status !== "all") params.set("status", status);
     else params.delete("status");
-    if (language && language !== "all") params.set("language", language);
-    else params.delete("language");
     const searchStr = params.toString();
     const newUrl = `${window.location.pathname}${searchStr ? `?${searchStr}` : ""}${window.location.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (newUrl !== currentUrl) {
       window.history.replaceState(null, "", newUrl);
     }
-  }, [query, genre, status, language]);
+  }, [query, genre, status]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -168,7 +182,7 @@ export function LibraryView(props: LibraryViewProps) {
         </select>
         <select
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={onLanguageChange}
           className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All languages</option>
