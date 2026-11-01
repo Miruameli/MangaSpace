@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { searchComics } from "@/app/actions/comics";
-import { getAllProgress } from "@/lib/storage/progress";
+import { getAllProgress, PROGRESS_KEY, BOOKMARKS_KEY } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
 
 const DEBOUNCE_MS = 300;
@@ -74,8 +74,12 @@ export function useLibrarySearch(
   // Re-read progress when it changes (cross-tab, reader navigation, remote sync).
   useEffect(() => {
     const handler = () => setProgressMap(getAllProgress());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === PROGRESS_KEY || e.key === BOOKMARKS_KEY) handler();
+    };
     window.addEventListener("mangaspace:progress", handler);
     window.addEventListener("focus", handler);
+    window.addEventListener("storage", onStorage);
     const onVisibility = () => {
       if (document.visibilityState === "visible") handler();
     };
@@ -83,6 +87,7 @@ export function useLibrarySearch(
     return () => {
       window.removeEventListener("mangaspace:progress", handler);
       window.removeEventListener("focus", handler);
+      window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);

@@ -1,8 +1,8 @@
 "use client";
 import { getSupabase } from "@/lib/db/supabase";
 import type { ReadingProgress } from "@/types/comic";
-const PROGRESS_KEY = "mangaspace:progress";
-const BOOKMARKS_KEY = "mangaspace:bookmarks";
+export const PROGRESS_KEY = "mangaspace:progress";
+export const BOOKMARKS_KEY = "mangaspace:bookmarks";
 function safeParse<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;
   try {
@@ -27,58 +27,34 @@ export function getProgress(comicId: string): ReadingProgress | null {
 export function saveProgress(p: ReadingProgress): void {
   if (typeof window === "undefined") return;
   const all = getAllProgress();
-  all[p.comicId] = { ...p, updatedAt: Date.now() };
+  const existing = all[p.comicId];
+  if (existing && existing.chapterId === p.chapterId && existing.page === p.page) return;
+  all[p.comicId] = p;
   window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
-  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-  void syncProgressRemote({ comicId: p.comicId, chapterId: p.chapterId, page: p.page, updatedAt: Date.now() });
-}
-
-export function getAllBookmarks(): string[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<string[]>(window.localStorage.getItem(BOOKMARKS_KEY), []);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+  }
 }
 
 export function isBookmarked(comicId: string): boolean {
   return getAllBookmarks().includes(comicId);
 }
 
+export function getAllBookmarks(): string[] {
+  if (typeof window === "undefined") return [];
+  return safeParse<string[]>(window.localStorage.getItem(BOOKMARKS_KEY), []);
+}
 export function toggleBookmark(comicId: string): boolean {
   if (typeof window === "undefined") return false;
-  const list = getAllBookmarks();
-  const idx = list.indexOf(comicId);
-  if (idx >= 0) {
-    list.splice(idx, 1);
-    window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+  const all = getAllBookmarks();
+  const idx = all.indexOf(comicId);
+  if (idx >= 0) all.splice(idx, 1);
+  else all.push(comicId);
+  window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(all));
+  if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-    void syncBookmarkRemote(comicId, false);
-    return false;
   }
-  list.unshift(comicId);
-  window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
-  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
-  void syncBookmarkRemote(comicId, true);
-  return true;
-}
-
-async function currentUserId(): Promise<string | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
-
-export async function syncProgressRemote(p: ReadingProgress): Promise<void> {
-  const uid = await currentUserId();
-  const sb = getSupabase();
-  if (!sb || !uid) return;
-  try {
-    await sb.from("reading_progress").upsert(
-      { user_id: uid, comic_id: p.comicId, chapter_id: p.chapterId, page: p.page, updated_at: new Date(p.updatedAt).toISOString() },
-      { onConflict: "user_id,comic_id" },
-    );
-  } catch {
-    // best-effort; localStorage remains source of truth
-  }
+  return idx < 0;
 }
 
 export async function syncBookmarkRemote(comicId: string, add: boolean): Promise<void> {
@@ -86,11 +62,8 @@ export async function syncBookmarkRemote(comicId: string, add: boolean): Promise
   const sb = getSupabase();
   if (!sb || !uid) return;
   try {
-    if (add) {
-      await sb.from("bookmarks").upsert({ user_id: uid, comic_id: comicId });
-    } else {
-      await sb.from("bookmarks").delete().eq("user_id", uid).eq("comic_id", comicId);
-    }
+    if (add) await sb.from("bookmarks").insert({ user_id: uid, comic_id: comicId });
+    else await sb.from("bookmarks").delete().eq("user_id", uid).eq("comic_id", comicId);
   } catch {
     // best-effort
   }
@@ -125,5 +98,16 @@ export async function hydrateFromRemote(): Promise<void> {
   }
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+  }
+}
+
+async function currentUserId(): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    return user?.id ?? null;
+  } catch {
+    return null;
   }
 }
