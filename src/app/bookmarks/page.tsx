@@ -101,7 +101,7 @@ export default function BookmarksPage() {
             const ch = prog ? c.chapters.find((x) => x.id === prog.chapterId) : null;
             return (
               <li key={c.id} className="flex items-center gap-4 p-3">
-                <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded">
+                <div className="relative w-12 aspect-[7/10] flex-shrink-0 overflow-hidden rounded">
                   <Image src={c.cover} alt={c.title} fill sizes="48px" className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">

@@ -74,7 +74,7 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
   return (
     <div className="grid md:grid-cols-[240px_1fr] gap-6">
       <div>
-        <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="relative w-full aspect-[7/10] overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
           <Image
             src={coverFailed ? FALLBACK_COVER : comic.cover}
             alt={comic.title}
