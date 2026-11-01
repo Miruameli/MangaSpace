@@ -19,6 +19,7 @@ export default function BookmarksPage() {
     const p = getAllProgress();
     const m: Record<string, { chapterId: string; page: number }> = {};
     for (const id of Object.keys(p)) m[id] = { chapterId: p[id].chapterId, page: p[id].page };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external storage on mount
     setProgressMap(m);
 
     getComicsByIds(ids)
