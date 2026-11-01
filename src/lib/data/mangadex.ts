@@ -102,6 +102,7 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   params.append("includes[]", "cover_art");
+  params.append("includes[]", "author");
   params.set("order[followedCount]", "desc");
   params.append("contentRating[]", "safe");
   params.append("contentRating[]", "suggestive");
@@ -121,7 +122,7 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
   return data.map((m) => ({
     id: m.id,
     title: pickText(m.attributes?.title) || "Untitled",
-    author: "Unknown",
+    author: authorName(m) || "Unknown",
     description: pickText(m.attributes?.description),
     cover: coverUrl(m),
     genres: tagNames(m),
