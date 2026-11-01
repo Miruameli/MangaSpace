@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const stored = window.localStorage.getItem("mangaspace:theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return stored ? stored === "dark" : prefersDark;
+  });
 
   useEffect(() => {
     const stored = window.localStorage.getItem("mangaspace:theme");
