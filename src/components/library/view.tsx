@@ -35,7 +35,7 @@ export function LibraryView(props: LibraryViewProps) {
   const router = useRouter();
 
   const { query, setQuery, loading, error, comics, progressMap } =
-    useLibrarySearch(initialComics, initialQuery);
+    useLibrarySearch(initialComics, initialQuery, { language });
   const [genre, setGenre] = useState(initialGenre);
   const [status, setStatus] = useState(initialStatus);
 

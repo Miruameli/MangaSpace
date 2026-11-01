@@ -105,6 +105,21 @@ describe("useLibrarySearch", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("forwards the active language filter to searchComics so results stay language-scoped", async () => {
+    vi.mocked(searchComics).mockResolvedValue([makeComic("z", "Zeta")]);
+    // A language filter is active (e.g. the user picked "Indonesian" server-side).
+    const { result } = renderHook(() => useLibrarySearch(initial, "", { language: "id" }));
+
+    act(() => {
+      result.current.setQuery("ze");
+    });
+    await flush();
+    // The language must travel with the search request, otherwise results would
+    // silently span every language once a query is typed.
+    expect(searchComics).toHaveBeenCalledWith("ze", { language: "id" });
+    expect(result.current.comics).toEqual([makeComic("z", "Zeta")]);
+  });
+
   it("reports a search failure and clears loading", async () => {
     vi.mocked(searchComics).mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() => useLibrarySearch(initial));
