@@ -46,7 +46,7 @@ export function Reader({
   const totalPages = chapter?.pages.length ?? 0;
 
   useEffect(() => {
-    if (!comic || !chapter) return;
+    if (!comic || !chapter || totalPages === 0) return;
     const clamped = Math.min(Math.max(pageIndex, 0), Math.max(totalPages - 1, 0));
     // eslint-disable-next-line react-hooks/set-state-in-effect -- clamping page index to valid range
     if (clamped !== pageIndex) setPageIndex(clamped);
