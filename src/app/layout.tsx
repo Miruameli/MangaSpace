@@ -31,10 +31,16 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 antialiased">
+        <a
+          href="#main-content"
+          className="skip-link"
+        >
+          Skip to main content
+        </a>
         <AuthProvider>
           <Header />
           <HydrateRemote />
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <main id="main-content" className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         </AuthProvider>
       </body>
     </html>
