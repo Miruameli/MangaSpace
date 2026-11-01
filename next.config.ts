@@ -43,6 +43,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "uploads.mangadex.org" },
+      { protocol: "https", hostname: "mangadex.network" },
+      { protocol: "https", hostname: "**.mangadex.network" },
     ],
   },
   turbopack: {

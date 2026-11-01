@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Chapter, Comic } from "@/types/comic";
 
 export interface ReaderViewProps {
@@ -47,12 +48,14 @@ export function ReaderView({
         </button>
       </div>
 
-      <div className="relative flex justify-center bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden min-h-[60vh]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className={`relative flex justify-center bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden ${fitWidth ? "max-w-3xl mx-auto" : "h-[80vh]"}`}>
+        <Image
           src={chapter.pages[safeIndex]}
           alt={`Page ${safeIndex + 1}`}
-          className={fitWidth ? "w-full max-w-3xl object-contain" : "h-[80vh] w-auto max-w-full object-contain"}
+          width={1600}
+          height={2400}
+          className={fitWidth ? "w-full max-w-3xl h-auto object-contain" : "h-[80vh] w-auto object-contain"}
+          sizes={fitWidth ? "(max-width: 1152px) 100vw, 1152px" : "100vw"}
         />
         <button
           type="button"
