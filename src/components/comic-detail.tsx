@@ -117,7 +117,11 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
                   {chapterLabel(ch.number, ch.title)}
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {ch.pages.length > 0 ? `${ch.pages.length} pages` : "open to load"}
+                  {ch.pages.length > 0
+                    ? `${ch.pages.length} pages`
+                    : ch.externalUrl
+                      ? "external"
+                      : ""}
                 </span>
               </Link>
             </li>
