@@ -176,7 +176,12 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
     const tagId = await resolveTagId(genre);
     if (tagId) params.append("includedTags[]", tagId);
   }
-  if (language) params.append("translatedLanguage[]", language);
+  if (language) {
+    // The /manga list endpoint filters translated availability with
+    // availableTranslatedLanguage[]; translatedLanguage[] belongs to the
+    // chapter feed and makes /manga return HTTP 400 (issue #105).
+    params.append("availableTranslatedLanguage[]", language);
+  }
 
   const res = await fetchWithRetry(`${API}/manga?${params.toString()}`, {
     next: { revalidate: 300 },
