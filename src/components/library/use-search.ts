@@ -13,6 +13,7 @@ const DEBOUNCE_MS = 300;
 export function useLibrarySearch(
   initialComics: Comic[],
   initialQueryOrOptions: string | { initialQuery?: string; initialSearch?: string; query?: string; search?: string } = "",
+  filters: { language?: string } = {},
 ) {
   const initialQuery =
     typeof initialQueryOrOptions === "string"
@@ -57,7 +58,14 @@ export function useLibrarySearch(
     // eslint-disable-next-line react-hooks/set-state-in-effect -- transient loading for async search
     setLoading(true);
     setError(null);
-    searchComics(debouncedQuery)
+    // Forward the active language filter so results are filtered server-side via
+    // MangaDex translatedLanguage[] — exactly as the initial library load is.
+    // Without it, typing a query silently drops the language filter, and a
+    // client-side check can't help because Comic.language is never populated.
+    const searchPromise = filters.language
+      ? searchComics(debouncedQuery, { language: filters.language })
+      : searchComics(debouncedQuery);
+    searchPromise
       .then((data) => {
         if (!cancelled) setResults(data);
       })
@@ -70,7 +78,7 @@ export function useLibrarySearch(
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, filters.language]);
   // Re-read progress when it changes (cross-tab, reader navigation, remote sync).
   useEffect(() => {
     const handler = () => setProgressMap(getAllProgress());
