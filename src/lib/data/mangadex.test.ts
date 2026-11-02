@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getChapterPages, getManga, getMangaChapters, hydrateChapter, listManga } from "./mangadex";
-import { safeExternalUrl } from "./mangadex-helpers";
+import { safeExternalUrl, statusFromManga } from "./mangadex-helpers";
 import type { Chapter } from "@/types/comic";
 
 const MANGA_ID = "11111111-2222-4333-8444-555555555555";
@@ -215,6 +215,26 @@ describe("safeExternalUrl", () => {
     expect(safeExternalUrl("not a url")).toBeUndefined();
     expect(safeExternalUrl(undefined)).toBeUndefined();
     expect(safeExternalUrl("")).toBeUndefined();
+});
+});
+describe("statusFromManga", () => {
+  it("maps completed", () => {
+    expect(statusFromManga("completed")).toBe("completed");
+  });
+  it("maps hiatus", () => {
+    expect(statusFromManga("hiatus")).toBe("hiatus");
+  });
+  it("maps cancelled and dropped to cancelled", () => {
+    expect(statusFromManga("cancelled")).toBe("cancelled");
+    expect(statusFromManga("dropped")).toBe("cancelled");
+  });
+  it("falls back to ongoing for ongoing/unknown/undefined and is case-insensitive", () => {
+    expect(statusFromManga("ongoing")).toBe("ongoing");
+    expect(statusFromManga("Completed")).toBe("completed");
+    expect(statusFromManga("HIATUS")).toBe("hiatus");
+    expect(statusFromManga("weird")).toBe("ongoing");
+    expect(statusFromManga(undefined)).toBe("ongoing");
+    expect(statusFromManga("")).toBe("ongoing");
   });
 });
 
