@@ -63,7 +63,12 @@ export function LibraryView(props: LibraryViewProps) {
     const params = new URLSearchParams(window.location.search);
     if (next && next !== "all") params.set("language", next);
     else params.delete("language");
-    router.replace(`${window.location.pathname}?${params.toString()}`);
+    const queryString = params.toString();
+    // Never emit a bare trailing "?" (e.g. "/?"): when the language param is
+    // the only one and gets cleared, that URL is a duplicate of "/".
+    router.replace(
+      queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname,
+    );
   };
 
   // Keep the active filters reflected in the URL so views are shareable and
