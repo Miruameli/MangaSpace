@@ -98,7 +98,15 @@ export function Reader({
     chapterIndex < comic.chapters.length - 1 ? comic.chapters[chapterIndex + 1] : null;
 
   if (totalPages === 0) {
-    return <ChapterUnavailable comicId={comic.id} externalUrl={chapter.externalUrl} loadFailed={chapter.loadFailed} />;
+    return (
+      <ChapterUnavailable
+        comicId={comic.id}
+        externalUrl={chapter.externalUrl}
+        loadFailed={chapter.loadFailed}
+        prevChapterId={prevChapter?.id ?? null}
+        nextChapterId={nextChapter?.id ?? null}
+      />
+    );
   }
 
   return (
