@@ -7,11 +7,13 @@ export interface ReaderViewProps {
   safeIndex: number;
   totalPages: number;
   fitWidth: boolean;
+  direction: "ltr" | "rtl";
   prevChapter: Chapter | null;
   nextChapter: Chapter | null;
   goPrev: () => void;
   goNext: () => void;
   toggleFit: () => void;
+  toggleDirection: () => void;
 }
 
 export function ReaderView({
@@ -20,11 +22,13 @@ export function ReaderView({
   safeIndex,
   totalPages,
   fitWidth,
+  direction,
   prevChapter,
   nextChapter,
   goPrev,
   goNext,
   toggleFit,
+  toggleDirection,
 }: ReaderViewProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -44,6 +48,14 @@ export function ReaderView({
           className="text-xs rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1"
         >
           {fitWidth ? "Fit height" : "Fit width"}
+        </button>
+        <button
+          type="button"
+          onClick={toggleDirection}
+          className="text-xs rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1"
+          aria-label="Toggle reading direction"
+        >
+          {direction === "ltr" ? "LTR" : "RTL"}
         </button>
       </div>
 
@@ -67,59 +79,123 @@ export function ReaderView({
             style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
           />
         )}
-        <button
-          type="button"
-          aria-label="Previous page"
-          onClick={goPrev}
-          className="absolute left-0 top-0 h-full w-1/3 cursor-w-resize opacity-0 hover:opacity-100 transition bg-gradient-to-r from-black/20 to-transparent text-white flex items-center justify-start pl-4"
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          aria-label="Next page"
-          onClick={goNext}
-          className="absolute right-0 top-0 h-full w-1/3 cursor-e-resize opacity-0 hover:opacity-100 transition bg-gradient-to-l from-black/20 to-transparent text-white flex items-center justify-end pr-4"
-        >
-          ›
-        </button>
+        {direction === "ltr" ? (
+          <>
+            <button
+              type="button"
+              aria-label="Previous page"
+              onClick={goPrev}
+              className="absolute left-0 top-0 h-full w-1/3 cursor-w-resize opacity-0 hover:opacity-100 transition bg-gradient-to-r from-black/20 to-transparent text-white flex items-center justify-start pl-4"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="Next page"
+              onClick={goNext}
+              className="absolute right-0 top-0 h-full w-1/3 cursor-e-resize opacity-0 hover:opacity-100 transition bg-gradient-to-l from-black/20 to-transparent text-white flex items-center justify-end pr-4"
+            >
+              ›
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              aria-label="Next page"
+              onClick={goNext}
+              className="absolute left-0 top-0 h-full w-1/3 cursor-w-resize opacity-0 hover:opacity-100 transition bg-gradient-to-r from-black/20 to-transparent text-white flex items-center justify-start pl-4"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="Previous page"
+              onClick={goPrev}
+              className="absolute right-0 top-0 h-full w-1/3 cursor-e-resize opacity-0 hover:opacity-100 transition bg-gradient-to-l from-black/20 to-transparent text-white flex items-center justify-end pr-4"
+            >
+              ›
+            </button>
+          </>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={goPrev}
-          disabled={safeIndex === 0 && !prevChapter}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
-        >
-          ‹ Prev
-        </button>
-        <div className="flex gap-2 text-xs">
-          {prevChapter && (
-            <Link
-              href={`/read/${comic.id}/${prevChapter.id}`}
-              className="text-zinc-500 dark:text-zinc-400 hover:underline"
+        {direction === "ltr" ? (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              disabled={safeIndex === 0 && !prevChapter}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
             >
-              ← Prev chapter
-            </Link>
-          )}
-          {nextChapter && (
-            <Link
-              href={`/read/${comic.id}/${nextChapter.id}`}
-              className="text-zinc-500 dark:text-zinc-400 hover:underline"
+              ‹ Prev
+            </button>
+            <div className="flex gap-2 text-xs">
+              {prevChapter && (
+                <Link
+                  href={`/read/${comic.id}/${prevChapter.id}`}
+                  className="text-zinc-500 dark:text-zinc-400 hover:underline"
+                >
+                  ← Prev chapter
+                </Link>
+              )}
+              {nextChapter && (
+                <Link
+                  href={`/read/${comic.id}/${nextChapter.id}`}
+                  className="text-zinc-500 dark:text-zinc-400 hover:underline"
+                >
+                  Next chapter →
+                </Link>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={safeIndex === totalPages - 1 && !nextChapter}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
             >
-              Next chapter →
-            </Link>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={safeIndex === totalPages - 1 && !nextChapter}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
-        >
-          Next ›
-        </button>
+              Next ›
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={safeIndex === totalPages - 1 && !nextChapter}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              Next ›
+            </button>
+            <div className="flex gap-2 text-xs">
+              {nextChapter && (
+                <Link
+                  href={`/read/${comic.id}/${nextChapter.id}`}
+                  className="text-zinc-500 dark:text-zinc-400 hover:underline"
+                >
+                  Next chapter →
+                </Link>
+              )}
+              {prevChapter && (
+                <Link
+                  href={`/read/${comic.id}/${prevChapter.id}`}
+                  className="text-zinc-500 dark:text-zinc-400 hover:underline"
+                >
+                  ← Prev chapter
+                </Link>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={goPrev}
+              disabled={safeIndex === 0 && !prevChapter}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              ‹ Prev
+            </button>
+          </>
+        )}
       </div>
 
       <p className="text-xs text-center text-zinc-400 dark:text-zinc-500">
