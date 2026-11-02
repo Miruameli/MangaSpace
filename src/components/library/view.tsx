@@ -187,6 +187,8 @@ export function LibraryView(props: LibraryViewProps) {
           <option value="all">All status</option>
           <option value="ongoing">Ongoing</option>
           <option value="completed">Completed</option>
+          <option value="hiatus">Hiatus</option>
+          <option value="cancelled">Cancelled</option>
         </select>
         <select
           value={language}

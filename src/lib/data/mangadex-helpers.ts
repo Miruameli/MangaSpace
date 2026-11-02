@@ -1,3 +1,5 @@
+import type { ComicStatus } from "@/types/comic";
+
 
 export const API = "https://api.mangadex.org";
 export const COVERS = "https://uploads.mangadex.org/covers";
@@ -49,8 +51,12 @@ export function coverUrl(manga: MdManga): string {
   return `${COVERS}/${manga.id}/${fileName}.256.jpg`;
 }
 
-export function statusFromManga(s?: string): "ongoing" | "completed" {
-  return s === "completed" ? "completed" : "ongoing";
+export function statusFromManga(s?: string): ComicStatus {
+  const v = (s ?? "").toLowerCase().trim();
+  if (v === "completed") return "completed";
+  if (v === "hiatus") return "hiatus";
+  if (v === "cancelled" || v === "dropped") return "cancelled";
+  return "ongoing";
 }
 
 export function tagNames(manga: MdManga): string[] {

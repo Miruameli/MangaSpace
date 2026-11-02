@@ -1,4 +1,4 @@
-export type ComicStatus = "ongoing" | "completed";
+export type ComicStatus = "ongoing" | "completed" | "hiatus" | "cancelled";
 
 export type Comic = {
   id: string;
