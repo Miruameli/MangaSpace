@@ -56,6 +56,17 @@ describe("listManga language filter", () => {
   });
 });
 
+describe("listManga error handling", () => {
+  it("throws when MangaDex returns a non-OK status (source failed)", async () => {
+    fetchMock.mockResolvedValue(new Response("boom", { status: 500 }));
+    await expect(listManga(24, 0, "")).rejects.toThrow();
+  });
+
+  it("returns [] on 200 with empty data (no results, not a failure)", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: [] }));
+    expect(await listManga(24, 0, "")).toEqual([]);
+  });
+});
 describe("getMangaChapters", () => {
   it("rejects a non-UUID manga id without hitting the API", async () => {
     expect(await getMangaChapters("../../etc/passwd")).toEqual([]);
