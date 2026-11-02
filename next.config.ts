@@ -35,6 +35,19 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: `default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ${connectSrc}; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; report-uri /api/csp-report`,
   },
+  // Staged CSP hardening (issue #32). The ENFORCED policy above stays as-is
+  // (script-src/style-src keep 'unsafe-inline') because Next.js 16.4 + Turbopack
+  // can emit inline scripts WITHOUT a nonce (see vercel/next.js #97882,
+  // #99800), which would blank the page. Instead we ship a strict
+  // Content-Security-Policy-Report-Only policy so real browsers report every
+  // violation (inline scripts, inline styles, missing nonces) to
+  // /api/csp-report WITHOUT blocking anything. This collects the data needed to
+  // safely enforce the strict policy later. ISR/static pages are unaffected
+  // (no proxy/middleware, no nonce, no dynamic-rendering switch).
+  {
+    key: "Content-Security-Policy-Report-Only",
+    value: `default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src ${connectSrc}; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; report-uri /api/csp-report`,
+  },
 ];
 
 const nextConfig: NextConfig = {
