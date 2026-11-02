@@ -38,6 +38,16 @@ export function Reader({
     window.localStorage.setItem("mangaspace:fitWidth", String(fitWidth));
   }, [fitWidth]);
 
+  const [direction, setDirection] = useState<"ltr" | "rtl">(() => {
+    if (typeof window === "undefined") return "ltr";
+    return window.localStorage.getItem("mangaspace:readingDirection") === "rtl" ? "rtl" : "ltr";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("mangaspace:readingDirection", direction);
+  }, [direction]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page index when chapter/route changes
     setPageIndex(Number.isFinite(initialPage) && initialPage >= 0 ? initialPage : 0);
@@ -70,15 +80,17 @@ export function Reader({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "ArrowLeft" || e.key === "a") goPrev();
-      else if (e.key === "ArrowRight" || e.key === "d" || e.key === " ") {
+      const prevKey = direction === "rtl" ? "ArrowRight" : "ArrowLeft";
+      const nextKey = direction === "rtl" ? "ArrowLeft" : "ArrowRight";
+      if (e.key === prevKey || e.key === "a") goPrev();
+      else if (e.key === nextKey || e.key === "d" || e.key === " ") {
         e.preventDefault();
         goNext();
       } else if (e.key === "f") setFitWidth((v) => !v);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goPrev, goNext]);
+  }, [goPrev, goNext, direction]);
 
   if (!comic || !chapter) {
     return (
@@ -116,11 +128,13 @@ export function Reader({
       safeIndex={safeIndex}
       totalPages={totalPages}
       fitWidth={fitWidth}
+      direction={direction}
       prevChapter={prevChapter}
       nextChapter={nextChapter}
       goPrev={goPrev}
       goNext={goNext}
       toggleFit={() => setFitWidth((v) => !v)}
+      toggleDirection={() => setDirection((d) => (d === "ltr" ? "rtl" : "ltr"))}
     />
   );
 }
