@@ -40,6 +40,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: false,
   images: {
+    // Fix #108: Vercel Hobby has a 5K/month image-transform limit; overage
+    // returns HTTP 402 and renders only alt text. Covers are already 256px
+    // thumbnails from uploads.mangadex.org, so optimization adds little value
+    // and unoptimized removes the quota failure mode entirely.
+    unoptimized: true,
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "uploads.mangadex.org" },
