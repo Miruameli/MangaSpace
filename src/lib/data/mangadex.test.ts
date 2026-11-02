@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getChapterPages, getManga, getMangaChapters, hydrateChapter } from "./mangadex";
+import { getChapterPages, getManga, getMangaChapters, hydrateChapter, listManga } from "./mangadex";
 import { safeExternalUrl } from "./mangadex-helpers";
 import type { Chapter } from "@/types/comic";
 
@@ -34,6 +34,26 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("listManga language filter", () => {
+  it("uses availableTranslatedLanguage[] (the /manga parameter), not translatedLanguage[]", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: [] }));
+    await listManga(24, 0, "", { language: "en" });
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    // /manga rejects translatedLanguage[] with HTTP 400; translated
+    // availability on the list endpoint is availableTranslatedLanguage[].
+    expect(url.searchParams.getAll("availableTranslatedLanguage[]")).toEqual(["en"]);
+    expect(url.searchParams.has("translatedLanguage[]")).toBe(false);
+  });
+
+  it("omits the language parameter when language is 'all'", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: [] }));
+    await listManga(24, 0, "", { language: "all" });
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.searchParams.has("availableTranslatedLanguage[]")).toBe(false);
+    expect(url.searchParams.has("translatedLanguage[]")).toBe(false);
+  });
 });
 
 describe("getMangaChapters", () => {
