@@ -54,6 +54,19 @@ export function ReaderView({
           alt={`Page ${safeIndex + 1}`}
           className={fitWidth ? "w-full max-w-3xl object-contain" : "h-[80vh] w-auto max-w-full object-contain"}
         />
+        {safeIndex + 1 < totalPages && (
+          // Prefetch the next page so advancing does not wait on the network.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={chapter.pages[safeIndex + 1]}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            decoding="async"
+            fetchPriority="low"
+            style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+          />
+        )}
         <button
           type="button"
           aria-label="Previous page"
