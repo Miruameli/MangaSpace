@@ -46,7 +46,7 @@ const securityHeaders = [
   // (no proxy/middleware, no nonce, no dynamic-rendering switch).
   {
     key: "Content-Security-Policy-Report-Only",
-    value: `default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src ${connectSrc}; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; report-uri /api/csp-report`,
+    value: `default-src 'self'; img-src 'self' data: https:; script-src 'self'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self'; font-src 'self' data:; connect-src ${connectSrc}; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; report-uri /api/csp-report`,
   },
 ];
 
