@@ -186,7 +186,9 @@ export async function listManga(...args: unknown[]): Promise<Comic[]> {
   const res = await fetchWithRetry(`${API}/manga?${params.toString()}`, {
     next: { revalidate: 300 },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    throw new Error(`MangaDex /manga request failed: ${res.status} ${res.statusText}`);
+  }
   const json = (await safeJson(res)) as { data?: MdManga[] } | null;
   const data = json?.data ?? [];
   return data.map((m) => ({
