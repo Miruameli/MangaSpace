@@ -123,7 +123,7 @@ export function ReaderView({
       </div>
 
       <p className="text-xs text-center text-zinc-400 dark:text-zinc-500">
-        Use ← → arrow keys or click sides to navigate. Press F to toggle fit.
+        Shortcuts: ←/A prev page · →/D/Space next page · F toggle fit (width/height). Click left/right thirds to navigate.
       </p>
     </div>
   );
