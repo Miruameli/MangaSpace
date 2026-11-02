@@ -42,3 +42,4 @@ next-env.d.ts
 .codegraph/
 # omp coordination
 .omp-coord.json
+.omp-coord-scratch/
