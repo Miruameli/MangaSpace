@@ -28,6 +28,7 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [coverFailed, setCoverFailed] = useState(false);
+  const [showAllChapters, setShowAllChapters] = useState(false);
 
   useEffect(() => {
     const refresh = () => {
@@ -131,7 +132,7 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
           <p className="text-sm text-zinc-500 mt-2">No chapters available.</p>
         )}
         <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
-          {comic.chapters.map((ch) => (
+          {(showAllChapters ? comic.chapters : comic.chapters.slice(0, 20)).map((ch) => (
             <li key={ch.id}>
               <Link
                 href={`/read/${comic.id}/${ch.id}`}
@@ -151,7 +152,17 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
             </li>
           ))}
         </ul>
+        {comic.chapters.length > 20 && !showAllChapters && (
+          <button
+            type="button"
+            onClick={() => setShowAllChapters(true)}
+            className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Show all {comic.chapters.length} chapters
+          </button>
+        )}
       </div>
+
     </div>
   );
 }
