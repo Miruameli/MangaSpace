@@ -20,12 +20,18 @@ export function validateDisplayName(value: string): string | null {
   return null;
 }
 
-// Basic absolute-URL check for an avatar link.
+// Validate an avatar link. Empty/whitespace returns true so the user can clear
+// the avatar. Otherwise the URL MUST be https: only — this prevents mixed-content
+// blocking on the HTTPS site and matches the codebase's existing safeExternalUrl
+// convention (see src/lib/data/mangadex-helpers.ts). We deliberately do NOT enforce
+// a hard host allowlist: avatars are arbitrary user-provided URLs with no canonical
+// trusted host, so https-only is the pragmatic security boundary (rejects http:,
+// data:, javascript:, blob:, file:, and malformed input).
 export function isValidAvatarUrl(value: string): boolean {
   if (!value.trim()) return true; // empty is allowed (clears the avatar)
   try {
     const u = new URL(value.trim());
-    return u.protocol === "http:" || u.protocol === "https:";
+    return u.protocol === "https:";
   } catch {
     return false;
   }

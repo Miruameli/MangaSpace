@@ -24,7 +24,8 @@ describe("isValidAvatarUrl", () => {
     expect(isValidAvatarUrl("")).toBe(true);
     expect(isValidAvatarUrl("https://cdn.example.com/a.png")).toBe(true);
   });
-  it("rejects non-http(s) schemes and malformed values", () => {
+  it("rejects http and non-http(s) schemes plus malformed values", () => {
+    expect(isValidAvatarUrl("http://example.com/a.png")).toBe(false);
     expect(isValidAvatarUrl("data:text/plain;base64,AAAA")).toBe(false);
     expect(isValidAvatarUrl("javascript:alert(1)")).toBe(false);
     expect(isValidAvatarUrl("not a url")).toBe(false);
