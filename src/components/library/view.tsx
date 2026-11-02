@@ -162,11 +162,13 @@ export function LibraryView(props: LibraryViewProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search comics…"
+          aria-label="Search comics"
           className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         />
         <select
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
+          aria-label="Filter by genre"
           className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All genres</option>
@@ -179,6 +181,7 @@ export function LibraryView(props: LibraryViewProps) {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
+          aria-label="Filter by status"
           className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All status</option>
@@ -188,6 +191,7 @@ export function LibraryView(props: LibraryViewProps) {
         <select
           value={language}
           onChange={onLanguageChange}
+          aria-label="Filter by language"
           className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
         >
           <option value="all">All languages</option>
