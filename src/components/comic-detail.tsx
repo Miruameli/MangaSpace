@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FALLBACK_COVER } from "@/lib/data/mangadex-helpers";
-import { getProgress, isBookmarked, toggleBookmark, PROGRESS_KEY, BOOKMARKS_KEY } from "@/lib/storage/progress";
+import { getProgress, isBookmarked, toggleBookmark, clearProgress, markChapterRead, PROGRESS_KEY, BOOKMARKS_KEY } from "@/lib/storage/progress";
 import type { Comic, ReadingProgress } from "@/types/comic";
 import { Markdown } from "@/components/markdown";
 
@@ -28,6 +28,7 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [coverFailed, setCoverFailed] = useState(false);
+  const [chapterFilter, setChapterFilter] = useState("");
   const [showAllChapters, setShowAllChapters] = useState(false);
 
   useEffect(() => {
@@ -70,6 +71,17 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
 
   function onToggleBookmark() {
     setBookmarked(toggleBookmark(id));
+  }
+
+  function onResetProgress() {
+    if (!window.confirm("Reset reading progress for this comic?")) return;
+    clearProgress(id);
+    setProgress(null);
+  }
+
+  function onMarkRead(chapterId: string, totalPages: number) {
+    markChapterRead(id, chapterId, totalPages);
+    setProgress(getProgress(id));
   }
 
   return (
@@ -124,19 +136,38 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
                 {progress.page + 1}
               </Link>
             </p>
+            <button
+              type="button"
+              onClick={onResetProgress}
+              className="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline"
+            >
+              Reset progress
+            </button>
           </div>
         )}
 
         <h2 className="mt-6 text-lg font-semibold">Chapters</h2>
+        <input
+          type="text"
+          value={chapterFilter}
+          onChange={(e) => setChapterFilter(e.target.value)}
+          placeholder="Jump to chapter number or title…"
+          className="mt-2 w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        />
         {comic.chapters.length === 0 && (
           <p className="text-sm text-zinc-500 mt-2">No chapters available.</p>
         )}
         <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
-          {(showAllChapters ? comic.chapters : comic.chapters.slice(0, 20)).map((ch) => (
-            <li key={ch.id}>
+          {(showAllChapters ? comic.chapters : comic.chapters.slice(0, 20)).filter((ch) => {
+            const q = chapterFilter.trim().toLowerCase();
+            if (!q) return true;
+            if (String(ch.number).includes(q)) return true;
+            return chapterLabel(ch.number, ch.title).toLowerCase().includes(q);
+          }).map((ch) => (
+            <li key={ch.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900">
               <Link
                 href={`/read/${comic.id}/${ch.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                className="flex-1 flex items-center justify-between"
               >
                 <span className="text-sm font-medium">
                   {chapterLabel(ch.number, ch.title)}
@@ -149,6 +180,18 @@ export function ComicDetail({ id, comic }: { id: string; comic: Comic | undefine
                       : ""}
                 </span>
               </Link>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onMarkRead(ch.id, ch.pages.length);
+                }}
+                className="ml-3 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                title="Mark as read"
+              >
+                ✓
+              </button>
             </li>
           ))}
         </ul>
