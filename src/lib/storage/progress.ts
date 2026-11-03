@@ -35,6 +35,33 @@ export function saveProgress(p: ReadingProgress): void {
   void syncProgressRemote({ comicId: p.comicId, chapterId: p.chapterId, page: p.page, updatedAt: Date.now() });
 }
 
+
+export function clearProgress(comicId: string): void {
+  if (typeof window === "undefined") return;
+  const all = getAllProgress();
+  if (!(comicId in all)) return;
+  delete all[comicId];
+  window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+  window.dispatchEvent(new CustomEvent("mangaspace:progress"));
+  void clearProgressRemote(comicId);
+}
+
+export function markChapterRead(comicId: string, chapterId: string, totalPages: number): void {
+  const page = totalPages > 0 ? totalPages - 1 : 0;
+  saveProgress({ comicId, chapterId, page, updatedAt: Date.now() });
+}
+
+async function clearProgressRemote(comicId: string): Promise<void> {
+  const uid = await currentUserId();
+  const sb = getSupabase();
+  if (!sb || !uid) return;
+  try {
+    await sb.from("reading_progress").delete().eq("user_id", uid).eq("comic_id", comicId);
+  } catch {
+    // best-effort; localStorage remains source of truth
+  }
+}
+
 export function getAllBookmarks(): string[] {
   if (typeof window === "undefined") return [];
   return safeParse<string[]>(window.localStorage.getItem(BOOKMARKS_KEY), []);
